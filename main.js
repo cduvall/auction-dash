@@ -544,7 +544,6 @@ async function loadHistory() {
   makeChart("chart-dollar", [
     ds("Total High Bids", history.map(h => h.totalHighBids), "#fbbf24"),
     ds("Value Gap", history.map(h => h.gap), "#34d399"),
-    ds("Total Median Value", history.map(h => h.totalMedianValue), "#60a5fa"),
   ], fmt);
 
   makeChart("chart-pct", [
