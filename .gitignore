@@ -1,6 +1,8 @@
 node_modules/
 data/
+.claude/
 auctions.json
 hidden.json
 favorites.json
 history.json
+lots.json
