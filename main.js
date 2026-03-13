@@ -1,14 +1,26 @@
 let DATA = null;
+let currentView = "dashboard";
+let historyLoaded = false;
+const historyCharts = {};
 let sortCol = "discount";
 let sortDir = -1;
 let activeFilter = null;
 let showHidden = false;
+let hideFavorites = false;
+
+let auctions = [];
+let currentAuctionId = null;
+
+function apiUrl(path) {
+  return `${path}${path.includes("?") ? "&" : "?"}auction=${currentAuctionId}`;
+}
 
 // Per-table sort state and cached data for highlight tables
 const tableSorts = {
   "highest-priced-table": { col: "highBid", dir: 1 },
   "over-estimate-table": { col: "overAmount", dir: -1 },
   "underpriced-table": { col: "discount", dir: -1 },
+  "favorites-table": { col: "discount", dir: -1 },
 };
 const tableData = {};
 
@@ -19,6 +31,12 @@ function fmt2(n) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }
 function pct(n) { return n.toFixed(1) + "%"; }
+
+function fmtClose(iso) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+}
 
 function discountColor(d) {
   if (d >= 90) return "var(--green)";
@@ -53,17 +71,40 @@ function compareLots(a, b, col, dir) {
   if (col === "name") {
     return a.name.localeCompare(b.name) * dir;
   }
+  if (col === "closeTime") {
+    return ((a.closeTime || "").localeCompare(b.closeTime || "")) * dir;
+  }
   return ((a[col] ?? 0) - (b[col] ?? 0)) * dir;
 }
 
 function isVisible(l) {
-  return !l.hidden || showHidden;
+  if (l.hidden && !showHidden) return false;
+  if (l.favorited && hideFavorites) return false;
+  return true;
 }
 
-function hideBtn(l) {
-  const icon = l.hidden ? "&#x1F648;" : "&#x1F441;";
+function hideIcon(l) {
   const cls = l.hidden ? "hide-btn unhide" : "hide-btn";
+  const icon = l.hidden
+    ? `<svg width="12" height="12" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="3" x2="11" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+    : `<svg width="12" height="12" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="7" cy="7" r="2" fill="currentColor"/></svg>`;
   return `<button class="${cls}" data-lot="${esc(l.lotNumber)}" title="${l.hidden ? 'Show' : 'Hide'}">${icon}</button>`;
+}
+
+function favIcon(l) {
+  const cls = l.favorited ? "fav-btn active" : "fav-btn";
+  const icon = l.favorited
+    ? `<svg width="12" height="12" viewBox="0 0 14 14"><polygon points="7 1 8.8 5.2 13 5.7 9.9 8.4 10.8 13 7 10.7 3.2 13 4.1 8.4 1 5.7 5.2 5.2" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></svg>`
+    : `<svg width="12" height="12" viewBox="0 0 14 14"><polygon points="7 1 8.8 5.2 13 5.7 9.9 8.4 10.8 13 7 10.7 3.2 13 4.1 8.4 1 5.7 5.2 5.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  return `<button class="${cls}" data-lot="${esc(l.lotNumber)}" title="${l.favorited ? 'Unfavorite' : 'Favorite'}">${icon}</button>`;
+}
+
+function actionsCell(l) {
+  return `<td class="actions-col"><span class="lot-actions">${favIcon(l)}${hideIcon(l)}</span></td>`;
+}
+
+function nameCell(l) {
+  return `<td class="name-col"><a href="${l.url}" target="_blank">${esc(l.lotNumber)} - ${esc(l.name)}</a></td>`;
 }
 
 function rowClass(l) {
@@ -85,7 +126,7 @@ async function toggleHide(lotNumber) {
   if (!lot) return;
 
   const method = lot.hidden ? "DELETE" : "POST";
-  await fetch("/api/hide", {
+  await fetch(apiUrl("/api/hide"), {
     method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ lotNumber }),
@@ -93,9 +134,81 @@ async function toggleHide(lotNumber) {
 
   lot.hidden = !lot.hidden;
   renderAll();
+  if (currentView === "favorites") renderFavorites();
+  if (currentView === "untouched") renderUntouched();
+}
+
+async function toggleFavorite(lotNumber) {
+  const lot = DATA.lots.find(l => l.lotNumber === lotNumber);
+  if (!lot) return;
+
+  const method = lot.favorited ? "DELETE" : "POST";
+  await fetch(apiUrl("/api/favorite"), {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lotNumber }),
+  });
+
+  lot.favorited = !lot.favorited;
+  renderAll();
+  if (currentView === "favorites") renderFavorites();
+  if (currentView === "untouched") renderUntouched();
+}
+
+function renderFavorites() {
+  if (!DATA) return;
+  const favs = DATA.lots.filter(l => l.favorited);
+  const tbody = document.querySelector("#favorites-table tbody");
+  const empty = document.getElementById("favorites-empty");
+  document.getElementById("favorites-count").textContent = favs.length;
+
+  if (favs.length === 0) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  const s = tableSorts["favorites-table"];
+  const sorted = [...favs].sort((a, b) => compareLots(a, b, s.col, s.dir));
+  tbody.innerHTML = sorted.map(l => `
+    <tr${rowClass(l)}>
+      ${actionsCell(l)}
+      ${nameCell(l)}
+      <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
+      <td class="num" style="color:${l.highBid > 0 ? "var(--text)" : "var(--text2)"}">${fmt2(l.highBid)}</td>
+      <td class="num">${l.bidCount}</td>
+      <td class="num">
+        ${l.highBid > 0 ? `<span class="discount-bar" style="width:${barWidth(l.discount) * 0.6}px;background:${discountColor(l.discount)}"></span>
+        <span style="color:${discountColor(l.discount)}">${pct(l.discount)}</span>` : '<span style="color:var(--text2)">-</span>'}
+      </td>
+      <td class="num">${fmtClose(l.closeTime)}</td>
+    </tr>
+  `).join("");
+  updateSortIndicators("favorites-table");
+}
+
+function renderUntouched() {
+  if (!DATA) return;
+  const untouched = DATA.lots.filter(l => l.highBid <= 0 && isVisible(l));
+  const tbody = document.querySelector("#untouched-table tbody");
+  document.getElementById("untouched-count").textContent = untouched.length;
+
+  const sorted = [...untouched].sort((a, b) => compareLots(a, b, "lotNumber", 1));
+  tbody.innerHTML = sorted.map(l => `
+    <tr${rowClass(l)}>
+      ${actionsCell(l)}
+      ${nameCell(l)}
+      <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
+      <td class="num">${fmtClose(l.closeTime)}</td>
+    </tr>
+  `).join("");
 }
 
 function renderStats(stats) {
+  const mostBids = DATA ? [...DATA.lots].sort((a, b) => b.bidCount - a.bidCount)[0] : null;
+  const highestPrice = DATA ? [...DATA.lots].sort((a, b) => b.highBid - a.highBid)[0] : null;
+
   document.getElementById("stats-grid").innerHTML = `
     <div class="stat-card">
       <div class="label">Total Lots</div>
@@ -122,10 +235,37 @@ function renderStats(stats) {
       <div class="value val-orange">${pct(stats.avgDiscount)}</div>
       <div class="sub">Avg % below median (items w/ bids)</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card clickable" id="stat-untouched">
       <div class="label">Untouched</div>
       <div class="value val-red">${stats.withoutBids}</div>
       <div class="sub">Lots with zero bids</div>
+    </div>
+  `;
+  document.getElementById("bid-stats-grid").innerHTML = `
+    <div class="stat-card">
+      <div class="label">Total Bids</div>
+      <div class="value val-accent">${stats.totalBids}</div>
+      <div class="sub">Bids placed across all lots</div>
+    </div>
+    <div class="stat-card" id="stat-bidders">
+      <div class="label">Unique Bidders</div>
+      <div class="value val-accent" id="bidder-count">-</div>
+      <div class="sub" id="bidder-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active (24h)</div>
+      <div class="value val-green" id="bidder-active">-</div>
+      <div class="sub">Bidders seen in last 24h</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Most Contested</div>
+      <div class="value val-yellow">${mostBids ? mostBids.bidCount + ' bids' : '-'}</div>
+      <div class="sub">${mostBids ? esc(mostBids.lotNumber) + ' - ' + esc(mostBids.name) : ''}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Highest Priced</div>
+      <div class="value val-yellow">${highestPrice ? fmt2(highestPrice.highBid) : '-'}</div>
+      <div class="sub">${highestPrice ? esc(highestPrice.lotNumber) + ' - ' + esc(highestPrice.name) : ''}</div>
     </div>
   `;
 }
@@ -142,12 +282,11 @@ function renderHighestPriced(lots) {
 
   document.querySelector("#highest-priced-table tbody").innerHTML = sorted.map(l => `
     <tr${rowClass(l)}>
-      <td>${l.lotNumber}</td>
-      <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+      ${actionsCell(l)}
+      ${nameCell(l)}
       <td class="num val-yellow">${fmt2(l.highBid)}</td>
       <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
       <td class="num">${l.bidCount}</td>
-      <td class="hide-col">${hideBtn(l)}</td>
     </tr>
   `).join("");
   updateSortIndicators("highest-priced-table");
@@ -175,12 +314,11 @@ function renderOverEstimate(lots) {
     const overPct = (over / l.median * 100);
     return `
     <tr${rowClass(l)}>
-      <td>${l.lotNumber}</td>
-      <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+      ${actionsCell(l)}
+      ${nameCell(l)}
       <td class="num val-yellow">${fmt2(l.highBid)}</td>
       <td class="num">${fmt2(l.median)}</td>
       <td class="num val-red">+${fmt(over)} (+${overPct.toFixed(0)}%)</td>
-      <td class="hide-col">${hideBtn(l)}</td>
     </tr>
   `;
   }).join("");
@@ -202,8 +340,8 @@ function renderUnderpricedTable(lots) {
 
   document.querySelector("#underpriced-table tbody").innerHTML = sorted.map(l => `
     <tr${rowClass(l)}>
-      <td>${l.lotNumber}</td>
-      <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+      ${actionsCell(l)}
+      ${nameCell(l)}
       <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
       <td class="num">${fmt2(l.highBid)}</td>
       <td class="num val-green">${l.median != null ? fmt(l.median - l.highBid) : "-"}</td>
@@ -211,7 +349,6 @@ function renderUnderpricedTable(lots) {
         <span class="discount-bar" style="width:${barWidth(l.discount)}px;background:${discountColor(l.discount)}"></span>
         <span style="color:${discountColor(l.discount)}">${pct(l.discount)}</span>
       </td>
-      <td class="hide-col">${hideBtn(l)}</td>
     </tr>
   `).join("");
   updateSortIndicators("underpriced-table");
@@ -225,12 +362,11 @@ function resortHighlightTable(tableId) {
     const sorted = [...data].sort((a, b) => compareLots(a, b, s.col, s.dir));
     document.querySelector("#highest-priced-table tbody").innerHTML = sorted.map(l => `
       <tr${rowClass(l)}>
-        <td>${l.lotNumber}</td>
-        <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+        ${actionsCell(l)}
+        ${nameCell(l)}
         <td class="num val-yellow">${fmt2(l.highBid)}</td>
         <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
         <td class="num">${l.bidCount}</td>
-        <td class="hide-col">${hideBtn(l)}</td>
       </tr>
     `).join("");
   } else if (tableId === "over-estimate-table") {
@@ -242,12 +378,11 @@ function resortHighlightTable(tableId) {
       const overPct = (over / l.median * 100);
       return `
       <tr${rowClass(l)}>
-        <td>${l.lotNumber}</td>
-        <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+        ${actionsCell(l)}
+        ${nameCell(l)}
         <td class="num val-yellow">${fmt2(l.highBid)}</td>
         <td class="num">${fmt2(l.median)}</td>
         <td class="num val-red">+${fmt(over)} (+${overPct.toFixed(0)}%)</td>
-        <td class="hide-col">${hideBtn(l)}</td>
       </tr>
     `;
     }).join("");
@@ -256,8 +391,8 @@ function resortHighlightTable(tableId) {
     const sorted = [...data].sort((a, b) => compareLots(a, b, s.col, s.dir));
     document.querySelector("#underpriced-table tbody").innerHTML = sorted.map(l => `
       <tr${rowClass(l)}>
-        <td>${l.lotNumber}</td>
-        <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+        ${actionsCell(l)}
+        ${nameCell(l)}
         <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
         <td class="num">${fmt2(l.highBid)}</td>
         <td class="num val-green">${l.median != null ? fmt(l.median - l.highBid) : "-"}</td>
@@ -265,7 +400,6 @@ function resortHighlightTable(tableId) {
           <span class="discount-bar" style="width:${barWidth(l.discount)}px;background:${discountColor(l.discount)}"></span>
           <span style="color:${discountColor(l.discount)}">${pct(l.discount)}</span>
         </td>
-        <td class="hide-col">${hideBtn(l)}</td>
       </tr>
     `).join("");
   }
@@ -290,8 +424,8 @@ function renderAllTable() {
 
   document.querySelector("#all-table tbody").innerHTML = filtered.map(l => `
     <tr${rowClass(l)}>
-      <td>${l.lotNumber}</td>
-      <td class="name-col"><a href="${l.url}" target="_blank">${esc(l.name)}</a></td>
+      ${actionsCell(l)}
+      ${nameCell(l)}
       <td class="num">${l.estimateLow != null ? fmt2(l.estimateLow) + " - " + fmt2(l.estimateHigh) : "-"}</td>
       <td class="num">${l.median != null ? fmt2(l.median) : "-"}</td>
       <td class="num" style="color:${l.highBid > 0 ? "var(--text)" : "var(--text2)"}">${fmt2(l.highBid)}</td>
@@ -300,7 +434,7 @@ function renderAllTable() {
         ${l.highBid > 0 ? `<span class="discount-bar" style="width:${barWidth(l.discount) * 0.6}px;background:${discountColor(l.discount)}"></span>
         <span style="color:${discountColor(l.discount)}">${pct(l.discount)}</span>` : '<span style="color:var(--text2)">-</span>'}
       </td>
-      <td class="hide-col">${hideBtn(l)}</td>
+      <td class="num">${fmtClose(l.closeTime)}</td>
     </tr>
   `).join("");
   updateSortIndicators("all-table");
@@ -323,7 +457,7 @@ function sortTable(tableId, col) {
       sortDir *= -1;
     } else {
       sortCol = col;
-      sortDir = col === "name" || col === "lotNumber" ? 1 : -1;
+      sortDir = col === "name" || col === "lotNumber" || col === "closeTime" ? 1 : -1;
     }
     renderAllTable();
   } else {
@@ -332,9 +466,13 @@ function sortTable(tableId, col) {
       s.dir *= -1;
     } else {
       s.col = col;
-      s.dir = col === "name" || col === "lotNumber" ? 1 : -1;
+      s.dir = col === "name" || col === "lotNumber" || col === "closeTime" ? 1 : -1;
     }
-    resortHighlightTable(tableId);
+    if (tableId === "favorites-table") {
+      renderFavorites();
+    } else {
+      resortHighlightTable(tableId);
+    }
   }
 }
 
@@ -343,6 +481,155 @@ function toggleFilter(f) {
   document.getElementById("filter-bids").classList.toggle("active", activeFilter === "bids");
   document.getElementById("filter-nobids").classList.toggle("active", activeFilter === "nobids");
   renderAllTable();
+}
+
+function makeChart(canvasId, datasets, tickFmt) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  if (historyCharts[canvasId]) {
+    const chart = historyCharts[canvasId];
+    chart.data.labels = datasets[0]._labels;
+    chart.data.datasets.forEach((ds, i) => { ds.data = datasets[i].data; });
+    chart.update();
+    return;
+  }
+
+  historyCharts[canvasId] = new Chart(ctx, {
+    type: "line",
+    data: { labels: datasets[0]._labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { labels: { color: "#8b90a0", font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label(tip) { return tip.dataset.label + ": " + tickFmt(tip.parsed.y); },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: "time",
+          time: { unit: "hour", tooltipFormat: "MMM d, h:mm a", displayFormats: { hour: "MMM d ha" } },
+          ticks: { color: "#8b90a0", font: { size: 11 }, maxTicksLimit: 10, maxRotation: 45 },
+          grid: { color: "rgba(45,50,68,0.5)" },
+        },
+        y: {
+          ticks: { color: "#8b90a0", font: { size: 11 }, callback: v => tickFmt(v) },
+          grid: { color: "rgba(45,50,68,0.3)" },
+        },
+      },
+    },
+  });
+}
+
+async function loadHistory() {
+  const res = await fetch(apiUrl("/api/history"));
+  const history = await res.json();
+
+  if (history.length === 0) {
+    document.querySelectorAll(".chart-section").forEach(el => el.style.display = "none");
+    document.getElementById("history-empty").style.display = "block";
+    return;
+  }
+
+  const labels = history.map(h => h.timestamp);
+  function ds(label, data, color) {
+    return { label, data, _labels: labels, borderColor: color, backgroundColor: color + "1a", tension: 0.3, pointRadius: 4, borderWidth: 2 };
+  }
+
+  makeChart("chart-dollar", [
+    ds("Total High Bids", history.map(h => h.totalHighBids), "#fbbf24"),
+    ds("Value Gap", history.map(h => h.gap), "#34d399"),
+    ds("Total Median Value", history.map(h => h.totalMedianValue), "#60a5fa"),
+  ], fmt);
+
+  makeChart("chart-pct", [
+    ds("Avg Discount", history.map(h => h.avgDiscount), "#fb923c"),
+    ds("Max Discount", history.map(h => h.maxDiscount), "#60a5fa"),
+  ], pct);
+
+  makeChart("chart-count", [
+    ds("With Bids", history.map(h => h.withBids), "#34d399"),
+    ds("Without Bids", history.map(h => h.withoutBids), "#f87171"),
+  ], v => String(v));
+}
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById("view-dashboard").style.display = view === "dashboard" ? "" : "none";
+  document.getElementById("view-favorites").style.display = view === "favorites" ? "" : "none";
+  document.getElementById("view-untouched").style.display = view === "untouched" ? "" : "none";
+  document.getElementById("view-history").style.display = view === "history" ? "" : "none";
+  document.querySelectorAll(".nav-link[data-view]").forEach(a => {
+    a.classList.toggle("active", a.dataset.view === view);
+  });
+  if (view === "history" && !historyLoaded) {
+    historyLoaded = true;
+    loadHistory();
+  }
+  if (view === "favorites") renderFavorites();
+  if (view === "untouched") renderUntouched();
+  window.location.hash = view === "dashboard" ? "" : view;
+}
+
+function showData() {
+  renderStats(DATA.stats);
+  renderAll();
+  if (currentView === "favorites") renderFavorites();
+  if (currentView === "untouched") renderUntouched();
+  const t = new Date(DATA.fetchedAt);
+  document.getElementById("fetched-at").textContent =
+    "Updated " + t.toLocaleTimeString();
+  document.getElementById("loading").style.display = "none";
+}
+
+function updateBidderCard(stats) {
+  const el = document.getElementById("bidder-count");
+  const sub = document.getElementById("bidder-sub");
+  const active = document.getElementById("bidder-active");
+  if (el) el.textContent = stats.uniqueBidders;
+  if (active && stats.activeLast24h != null) active.textContent = stats.activeLast24h;
+  if (sub && stats.lotsRefreshed != null) {
+    sub.textContent = `${stats.lotsRefreshed} lots updated`;
+  }
+}
+
+async function loadBiddersCached() {
+  try {
+    const res = await fetch(apiUrl("/api/bidders/cached"));
+    if (res.ok) {
+      const stats = await res.json();
+      updateBidderCard(stats);
+    }
+  } catch {}
+}
+
+async function refreshBidders() {
+  try {
+    const sub = document.getElementById("bidder-sub");
+    if (sub) sub.textContent = "refreshing...";
+    const res = await fetch(apiUrl("/api/bidders"));
+    if (res.ok) {
+      const stats = await res.json();
+      updateBidderCard(stats);
+    }
+  } catch {}
+}
+
+async function loadCached() {
+  try {
+    const res = await fetch(apiUrl("/api/lots/cached"));
+    if (!res.ok) return loadData();
+    DATA = await res.json();
+    showData();
+    loadBiddersCached();
+  } catch {
+    return loadData();
+  }
 }
 
 async function loadData() {
@@ -354,14 +641,10 @@ async function loadData() {
   if (!DATA) loading.style.display = "flex";
 
   try {
-    const res = await fetch("/api/lots");
-    DATA = await res.json();
-    renderStats(DATA.stats);
-    renderAll();
-
-    const t = new Date(DATA.fetchedAt);
-    document.getElementById("fetched-at").textContent =
-      "Updated " + t.toLocaleTimeString();
+    const lotsRes = await fetch(apiUrl("/api/lots"));
+    DATA = await lotsRes.json();
+    showData();
+    refreshBidders();
   } catch (e) {
     alert("Failed to fetch data: " + e.message);
   } finally {
@@ -383,6 +666,16 @@ document.getElementById("toggle-hidden").addEventListener("click", () => {
   btn.textContent = showHidden ? "Hide Hidden" : "Show Hidden";
   btn.classList.toggle("active", showHidden);
   renderAll();
+  if (currentView === "untouched") renderUntouched();
+});
+
+document.getElementById("toggle-favs").addEventListener("click", () => {
+  hideFavorites = !hideFavorites;
+  const btn = document.getElementById("toggle-favs");
+  btn.textContent = hideFavorites ? "Show Favorites" : "Hide Favorites";
+  btn.classList.toggle("active", hideFavorites);
+  renderAll();
+  if (currentView === "untouched") renderUntouched();
 });
 
 // Sort handlers for all tables with data-col headers
@@ -391,11 +684,82 @@ document.querySelectorAll("table.sortable thead th[data-col], #all-table thead t
   th.addEventListener("click", () => sortTable(table.id, th.dataset.col));
 });
 
-// Delegate hide button clicks
+// Delegate clicks
 document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("hide-btn")) {
-    toggleHide(e.target.dataset.lot);
-  }
+  const hideBtn = e.target.closest(".hide-btn");
+  if (hideBtn) return toggleHide(hideBtn.dataset.lot);
+  const favBtn = e.target.closest(".fav-btn");
+  if (favBtn) return toggleFavorite(favBtn.dataset.lot);
+  if (e.target.closest("#stat-untouched")) return switchView("untouched");
 });
 
-loadData();
+// View switching
+document.querySelectorAll(".nav-link[data-view]").forEach(a => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    switchView(a.dataset.view);
+  });
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && currentView !== "dashboard") switchView("dashboard");
+});
+
+// Auction switching
+function resetAuctionState() {
+  DATA = null;
+  historyLoaded = false;
+  for (const [key, chart] of Object.entries(historyCharts)) {
+    chart.destroy();
+    delete historyCharts[key];
+  }
+  document.querySelectorAll(".chart-section").forEach(el => el.style.display = "");
+  document.getElementById("history-empty").style.display = "none";
+}
+
+function renderAuctionSelect() {
+  const select = document.getElementById("auction-select");
+  select.innerHTML = auctions.map(a =>
+    `<option value="${a.id}"${a.id === currentAuctionId ? " selected" : ""}>${esc(a.title)}</option>`
+  ).join("");
+  select.style.display = auctions.length > 1 ? "" : "none";
+}
+
+function setAuctionTitle() {
+  const auction = auctions.find(a => a.id === currentAuctionId);
+  document.title = auction ? auction.title + " - AuctionDash" : "AuctionDash";
+}
+
+document.getElementById("auction-select").addEventListener("change", (e) => {
+  currentAuctionId = parseInt(e.target.value);
+  resetAuctionState();
+  setAuctionTitle();
+  if (currentView === "history") {
+    historyLoaded = true;
+    loadHistory();
+  }
+  loadCached();
+});
+
+// Init: load auctions, then data
+async function init() {
+  const hash = window.location.hash.slice(1);
+  const initView = ["history", "favorites", "untouched"].includes(hash) ? hash : "dashboard";
+  if (initView !== "dashboard") switchView(initView);
+
+  try {
+    const res = await fetch("/api/auctions");
+    auctions = await res.json();
+  } catch {
+    auctions = [];
+  }
+
+  if (auctions.length > 0) {
+    currentAuctionId = auctions[0].id;
+    renderAuctionSelect();
+    setAuctionTitle();
+    loadCached();
+  }
+}
+
+init();

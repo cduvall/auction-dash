@@ -3,54 +3,157 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Captain Lindh's Woodworking Auction</title>
+<title>Auction Dashboard</title>
 <link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
 <div class="header">
-  <h1><span>Captain Lindh's</span> Woodworking Auction</h1>
+  <div class="header-left">
+    <h1>AuctionDash</h1>
+    <select id="auction-select" class="auction-select"></select>
+  </div>
   <div class="header-right">
     <span class="fetched-at" id="fetched-at"></span>
+    <nav class="nav-tabs">
+      <a href="#dashboard" class="nav-link active" data-view="dashboard">Dashboard</a>
+      <a href="#favorites" class="nav-link" data-view="favorites">Favorites</a>
+      <a href="#history" class="nav-link" data-view="history">History</a>
+    </nav>
     <button class="filter-btn" id="toggle-hidden">Show Hidden</button>
+    <button class="filter-btn" id="toggle-favs">Hide Favorites</button>
     <button class="refresh-btn" id="refresh-btn">Refresh</button>
   </div>
 </div>
 
 <div class="container">
-  <div class="stats-grid" id="stats-grid"></div>
+  <!-- Dashboard view -->
+  <div id="view-dashboard">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="stats-grid" id="bid-stats-grid"></div>
 
-  <div class="highlight-grid">
-    <div class="section highlight-section">
-      <div class="section-title">Lowest Priced Items <span class="badge">Top 10</span></div>
+    <div class="highlight-grid">
+      <div class="section highlight-section">
+        <div class="section-title">Lowest Priced Items <span class="badge">Top 10</span></div>
+        <div class="table-wrap">
+          <table id="highest-priced-table" class="sortable">
+            <thead>
+              <tr>
+                <th class="actions-col"></th>
+                <th data-col="lotNumber">Item <span class="sort-arrow">&#9650;</span></th>
+                <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
+                <th class="num" data-col="median">Median Est. <span class="sort-arrow">&#9650;</span></th>
+                <th class="num" data-col="bidCount">Bids <span class="sort-arrow">&#9650;</span></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section highlight-section">
+        <div class="section-title">Most Over Estimate <span class="badge">Top 10</span></div>
+        <div class="table-wrap">
+          <table id="over-estimate-table" class="sortable">
+            <thead>
+              <tr>
+                <th class="actions-col"></th>
+                <th data-col="lotNumber">Item <span class="sort-arrow">&#9650;</span></th>
+                <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
+                <th class="num" data-col="median">Median Est. <span class="sort-arrow">&#9650;</span></th>
+                <th class="num" data-col="overAmount">Over By <span class="sort-arrow">&#9650;</span></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Top Underpriced Lots <span class="badge" id="underpriced-count"></span></div>
       <div class="table-wrap">
-        <table id="highest-priced-table" class="sortable">
+        <table id="underpriced-table" class="sortable">
           <thead>
             <tr>
               <th data-col="lotNumber">Lot <span class="sort-arrow">&#9650;</span></th>
-              <th data-col="name">Item <span class="sort-arrow">&#9650;</span></th>
-              <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
+              <th data-col="lotNumber">Item <span class="sort-arrow">&#9650;</span></th>
               <th class="num" data-col="median">Median Est. <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="savings">Savings <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="discount">Discount <span class="sort-arrow">&#9650;</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">All Lots <span class="badge" id="all-lots-count"></span></div>
+      <div class="controls">
+        <input class="search-input" id="search" placeholder="Search lots...">
+        <button class="filter-btn" id="filter-bids">Has Bids</button>
+        <button class="filter-btn" id="filter-nobids">No Bids</button>
+        <span class="lot-count" id="visible-count"></span>
+      </div>
+      <div class="table-wrap" id="all-table-wrap">
+        <table id="all-table">
+          <thead>
+            <tr>
+              <th data-col="lotNumber">Lot <span class="sort-arrow">&#9650;</span></th>
+              <th data-col="lotNumber">Item <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="estimateLow">Estimate <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="median">Median <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
               <th class="num" data-col="bidCount">Bids <span class="sort-arrow">&#9650;</span></th>
-              <th class="hide-col"></th>
+              <th class="num" data-col="discount">Discount <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="closeTime">Closes <span class="sort-arrow">&#9650;</span></th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
+  </div>
 
-    <div class="section highlight-section">
-      <div class="section-title">Most Over Estimate <span class="badge">Top 10</span></div>
+  <!-- Favorites view -->
+  <div id="view-favorites" style="display:none">
+    <div class="section">
+      <div class="section-title">Favorites <span class="badge" id="favorites-count">0</span></div>
       <div class="table-wrap">
-        <table id="over-estimate-table" class="sortable">
+        <table id="favorites-table" class="sortable">
           <thead>
             <tr>
-              <th data-col="lotNumber">Lot <span class="sort-arrow">&#9650;</span></th>
-              <th data-col="name">Item <span class="sort-arrow">&#9650;</span></th>
-              <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
+              <th class="actions-col"></th>
+              <th data-col="lotNumber">Item <span class="sort-arrow">&#9650;</span></th>
               <th class="num" data-col="median">Median Est. <span class="sort-arrow">&#9650;</span></th>
-              <th class="num" data-col="overAmount">Over By <span class="sort-arrow">&#9650;</span></th>
-              <th class="hide-col"></th>
+              <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="bidCount">Bids <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="discount">Discount <span class="sort-arrow">&#9650;</span></th>
+              <th class="num" data-col="closeTime">Closes <span class="sort-arrow">&#9650;</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="history-empty" id="favorites-empty" style="display:none">No favorites yet. Star a lot from any table to add it here.</div>
+    </div>
+  </div>
+
+  <!-- Untouched view -->
+  <div id="view-untouched" style="display:none">
+    <div class="section">
+      <div class="section-title">Untouched Lots <span class="badge" id="untouched-count">0</span></div>
+      <div class="table-wrap" id="untouched-table-wrap">
+        <table id="untouched-table">
+          <thead>
+            <tr>
+              <th class="actions-col"></th>
+              <th data-col="lotNumber">Item</th>
+              <th class="num" data-col="median">Median Est.</th>
+              <th class="num" data-col="closeTime">Closes</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -59,51 +162,21 @@
     </div>
   </div>
 
-  <div class="section">
-    <div class="section-title">Top Underpriced Lots <span class="badge" id="underpriced-count"></span></div>
-    <div class="table-wrap">
-      <table id="underpriced-table" class="sortable">
-        <thead>
-          <tr>
-            <th data-col="lotNumber">Lot <span class="sort-arrow">&#9650;</span></th>
-            <th data-col="name">Item <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="median">Median Est. <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="savings">Savings <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="discount">Discount <span class="sort-arrow">&#9650;</span></th>
-            <th class="hide-col"></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  <!-- History view -->
+  <div id="view-history" style="display:none">
+    <div class="chart-section">
+      <div class="section-title">Dollar Trends</div>
+      <div class="chart-box"><canvas id="chart-dollar"></canvas></div>
     </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">All Lots <span class="badge" id="all-lots-count"></span></div>
-    <div class="controls">
-      <input class="search-input" id="search" placeholder="Search lots...">
-      <button class="filter-btn" id="filter-bids">Has Bids</button>
-      <button class="filter-btn" id="filter-nobids">No Bids</button>
-      <span class="lot-count" id="visible-count"></span>
+    <div class="chart-section">
+      <div class="section-title">Discount Trends</div>
+      <div class="chart-box"><canvas id="chart-pct"></canvas></div>
     </div>
-    <div class="table-wrap" id="all-table-wrap">
-      <table id="all-table">
-        <thead>
-          <tr>
-            <th data-col="lotNumber">Lot <span class="sort-arrow">&#9650;</span></th>
-            <th data-col="name">Item <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="estimateLow">Estimate <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="median">Median <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="highBid">High Bid <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="bidCount">Bids <span class="sort-arrow">&#9650;</span></th>
-            <th class="num" data-col="discount">Discount <span class="sort-arrow">&#9650;</span></th>
-            <th class="hide-col"></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="chart-section">
+      <div class="section-title">Lot Counts</div>
+      <div class="chart-box"><canvas id="chart-count"></canvas></div>
     </div>
+    <div class="history-empty" id="history-empty" style="display:none">No history data yet. Refresh the dashboard to start collecting snapshots.</div>
   </div>
 </div>
 
