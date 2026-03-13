@@ -1,0 +1,19 @@
+{
+  "name": "hibid-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"node server.js\" \"vite\"",
+    "api": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "concurrently": "^9.2.1",
+    "puppeteer": "^24.39.0",
+    "vite": "^8.0.0"
+  }
+}
