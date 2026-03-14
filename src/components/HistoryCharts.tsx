@@ -24,7 +24,7 @@ function chartOptions(tickFmt: (v: number) => string) {
     maintainAspectRatio: false,
     interaction: { mode: "index" as const, intersect: false },
     plugins: {
-      legend: { labels: { color: "#8b90a0", font: { size: 12 } } },
+      legend: { labels: { color: "#909194", font: { size: 12 } } },
       tooltip: {
         callbacks: {
           label(tip: TooltipItem<"line">) {
@@ -37,12 +37,12 @@ function chartOptions(tickFmt: (v: number) => string) {
       x: {
         type: "time" as const,
         time: { unit: "hour" as const, tooltipFormat: "MMM d, h:mm a", displayFormats: { hour: "MMM d ha" } },
-        ticks: { color: "#8b90a0", font: { size: 11 }, maxTicksLimit: 10, maxRotation: 45 },
-        grid: { color: "rgba(45,50,68,0.5)" },
+        ticks: { color: "#909194", font: { size: 11 }, maxTicksLimit: 10, maxRotation: 45 },
+        grid: { color: "rgba(63,65,68,0.4)" },
       },
       y: {
-        ticks: { color: "#8b90a0", font: { size: 11 }, callback: (v: string | number) => tickFmt(Number(v)) },
-        grid: { color: "rgba(45,50,68,0.3)" },
+        ticks: { color: "#909194", font: { size: 11 }, callback: (v: string | number) => tickFmt(Number(v)) },
+        grid: { color: "rgba(63,65,68,0.3)" },
       },
     },
   };
@@ -85,8 +85,8 @@ export function HistoryCharts({ auctionId }: Props) {
           <Line
             data={{
               datasets: [
-                ds("Total High Bids", labels, history.map((h) => h.totalHighBids), "#fbbf24"),
-                ds("Value Gap", labels, history.map((h) => h.gap), "#34d399"),
+                ds("Total High Bids", labels, history.map((h) => h.totalHighBids), "#d9a05b"),
+                ds("Value Gap", labels, history.map((h) => h.gap), "#6b705c"),
               ],
             }}
             options={chartOptions(fmt)}
@@ -99,8 +99,8 @@ export function HistoryCharts({ auctionId }: Props) {
           <Line
             data={{
               datasets: [
-                ds("Avg Discount", labels, history.map((h) => h.avgDiscount), "#fb923c"),
-                ds("Max Discount", labels, history.map((h) => h.maxDiscount), "#60a5fa"),
+                ds("Avg Discount", labels, history.map((h) => h.avgDiscount), "#cc7722"),
+                ds("Max Discount", labels, history.map((h) => h.maxDiscount), "#b35d43"),
               ],
             }}
             options={chartOptions(pct)}
@@ -113,8 +113,8 @@ export function HistoryCharts({ auctionId }: Props) {
           <Line
             data={{
               datasets: [
-                ds("With Bids", labels, history.map((h) => h.withBids), "#34d399"),
-                ds("Without Bids", labels, history.map((h) => h.withoutBids), "#f87171"),
+                ds("With Bids", labels, history.map((h) => h.withBids), "#6b705c"),
+                ds("Without Bids", labels, history.map((h) => h.withoutBids), "#b35d43"),
               ],
             }}
             options={chartOptions((v) => String(v))}
