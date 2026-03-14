@@ -11,8 +11,8 @@ export async function fetchMe(): Promise<MeResponse> {
   return res.json();
 }
 
-export async function logout(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST" });
+export function logout(): void {
+  window.location.href = "/api/auth/logout";
 }
 
 export async function migrateAnonymous(skip: boolean): Promise<void> {

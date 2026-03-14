@@ -7,7 +7,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   hasAnonymousData: boolean;
   loading: boolean;
-  logout: () => Promise<void>;
+  logout: () => void;
   refresh: () => Promise<void>;
 }
 
@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   hasAnonymousData: false,
   loading: true,
-  logout: async () => {},
+  logout: () => {},
   refresh: async () => {},
 });
 
@@ -34,10 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh().finally(() => setLoading(false));
   }, [refresh]);
 
-  const logout = useCallback(async () => {
-    await apiLogout();
-    setUser(null);
-    setHasAnonymousData(false);
+  const logout = useCallback(() => {
+    apiLogout(); // redirects to CF Access logout
   }, []);
 
   return (

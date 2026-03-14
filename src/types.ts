@@ -60,7 +60,7 @@ export interface HistorySnapshot {
 
 export interface AuthUser {
   id: number;
-  githubId: number;
+  email: string;
   username: string;
   avatarUrl: string | null;
   migratedAnonymous: boolean;

@@ -34,10 +34,11 @@ export function App() {
   const [hideFavorites, setHideFavorites] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState<number | false>(false);
-  const [showAuctionManager, setShowAuctionManager] = useState(false);
+  const [showAuctionManager, setShowAuctionManager] = useState(() => {
+    return new URLSearchParams(window.location.search).get("setup") === "1";
+  });
   const [showMigration, setShowMigration] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("migrate") === "1";
+    return new URLSearchParams(window.location.search).get("migrate") === "1";
   });
 
   const queryClient = useQueryClient();
@@ -157,7 +158,14 @@ export function App() {
           auctions={auctions}
           currentAuctionId={auctionId}
           onUpdate={handleAuctionsUpdated}
-          onClose={() => setShowAuctionManager(false)}
+          onClose={() => {
+            setShowAuctionManager(false);
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("setup")) {
+              url.searchParams.delete("setup");
+              window.history.replaceState({}, "", url.pathname + url.search);
+            }
+          }}
         />
       )}
 

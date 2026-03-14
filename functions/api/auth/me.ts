@@ -4,7 +4,6 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.json({ user: null });
   }
 
-  // Check if anonymous data exists (for migration prompt)
   let hasAnonymousData = false;
   if (!user.migratedAnonymous) {
     const row = await context.env.DB.prepare(

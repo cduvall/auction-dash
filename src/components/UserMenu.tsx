@@ -36,23 +36,15 @@ export function UserMenu() {
         className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0"
         onClick={() => setOpen((o) => !o)}
       >
-        {user.avatarUrl && (
-          <img
-            src={user.avatarUrl}
-            alt=""
-            className="w-6 h-6 rounded-full"
-          />
-        )}
-        <span className="text-[13px] text-secondary hidden sm:inline">{user.username}</span>
+        <span className="text-[13px] text-secondary">{user.username}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 bg-surface border border-elevated rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.6)] py-1 min-w-[120px] z-50">
           <button
             className="block w-full text-left px-4 py-2 text-[13px] font-medium text-secondary hover:text-primary hover:bg-elevated/50 bg-transparent border-none cursor-pointer"
-            onClick={async () => {
+            onClick={() => {
               setOpen(false);
-              await logout();
-              window.location.reload();
+              logout();
             }}
           >
             Sign out
