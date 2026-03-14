@@ -56,7 +56,7 @@ export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggl
       </div>
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <input
-          className="bg-elevated border border-elevated text-primary rounded-md px-3 py-1.5 text-sm outline-none focus:border-ochre transition-colors w-56"
+          className="bg-elevated border border-elevated text-primary rounded-md px-3 py-1.5 text-sm outline-none focus:border-ochre transition-colors w-full sm:w-56"
           placeholder="Search lots..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -87,7 +87,7 @@ export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggl
       <div className="flex flex-col gap-1">
         {filtered.map((l) => (
           <LotCard key={l.id} lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite}>
-            <div className="flex items-center gap-4 text-[11px] text-secondary">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-secondary">
               <span>Median: <span className="text-primary">{l.median != null ? fmt2(l.median) : "-"}</span></span>
               <span>Bid: <span className={l.highBid > 0 ? "text-primary" : "text-secondary"}>{fmt2(l.highBid)}</span></span>
               <span>Bids: <span className="text-primary">{l.bidCount}</span></span>

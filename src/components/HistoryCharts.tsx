@@ -18,13 +18,16 @@ import { fmt, pct } from "../lib/format";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, TimeScale);
 
+const isMobile = () => typeof window !== "undefined" && window.innerWidth < 640;
+
 function chartOptions(tickFmt: (v: number) => string) {
+  const mobile = isMobile();
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index" as const, intersect: false },
     plugins: {
-      legend: { labels: { color: "#909194", font: { size: 12 } } },
+      legend: { labels: { color: "#909194", font: { size: mobile ? 10 : 12 } } },
       tooltip: {
         callbacks: {
           label(tip: TooltipItem<"line">) {
@@ -36,12 +39,12 @@ function chartOptions(tickFmt: (v: number) => string) {
     scales: {
       x: {
         type: "time" as const,
-        time: { unit: "hour" as const, tooltipFormat: "MMM d, h:mm a", displayFormats: { hour: "MMM d ha" } },
-        ticks: { color: "#909194", font: { size: 11 }, maxTicksLimit: 10, maxRotation: 45 },
+        time: { unit: "hour" as const, tooltipFormat: "MMM d, h:mm a", displayFormats: { hour: mobile ? "M/d ha" : "MMM d ha" } },
+        ticks: { color: "#909194", font: { size: mobile ? 9 : 11 }, maxTicksLimit: mobile ? 5 : 10, maxRotation: 45 },
         grid: { color: "rgba(63,65,68,0.4)" },
       },
       y: {
-        ticks: { color: "#909194", font: { size: 11 }, callback: (v: string | number) => tickFmt(Number(v)) },
+        ticks: { color: "#909194", font: { size: mobile ? 9 : 11 }, callback: (v: string | number) => tickFmt(Number(v)) },
         grid: { color: "rgba(63,65,68,0.3)" },
       },
     },
@@ -81,7 +84,7 @@ export function HistoryCharts({ auctionId }: Props) {
     <>
       <div className="mb-6">
         <div className="text-sm font-semibold uppercase tracking-wider text-secondary mb-3">Dollar Trends</div>
-        <div className="bg-surface border border-elevated rounded-lg p-4 h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+        <div className="bg-surface border border-elevated rounded-lg p-2 sm:p-4 h-56 sm:h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
           <Line
             data={{
               datasets: [
@@ -95,7 +98,7 @@ export function HistoryCharts({ auctionId }: Props) {
       </div>
       <div className="mb-6">
         <div className="text-sm font-semibold uppercase tracking-wider text-secondary mb-3">Discount Trends</div>
-        <div className="bg-surface border border-elevated rounded-lg p-4 h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+        <div className="bg-surface border border-elevated rounded-lg p-2 sm:p-4 h-56 sm:h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
           <Line
             data={{
               datasets: [
@@ -109,7 +112,7 @@ export function HistoryCharts({ auctionId }: Props) {
       </div>
       <div className="mb-6">
         <div className="text-sm font-semibold uppercase tracking-wider text-secondary mb-3">Lot Counts</div>
-        <div className="bg-surface border border-elevated rounded-lg p-4 h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+        <div className="bg-surface border border-elevated rounded-lg p-2 sm:p-4 h-56 sm:h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
           <Line
             data={{
               datasets: [

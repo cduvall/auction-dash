@@ -12,20 +12,20 @@ interface StatCardProps {
 export function StatCard({ label, value, sub, icon, color, onClick }: StatCardProps) {
   return (
     <div
-      className={`bg-surface border border-elevated rounded-lg p-4 shadow-[0_4px_12px_rgba(0,0,0,0.5)]${onClick ? " cursor-pointer hover:border-ochre transition-colors" : ""}`}
+      className={`bg-surface border border-elevated rounded-lg p-3 sm:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.5)]${onClick ? " cursor-pointer hover:border-ochre transition-colors" : ""}`}
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+          className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 [&_svg]:w-3.5 [&_svg]:h-3.5 sm:[&_svg]:w-[18px] sm:[&_svg]:h-[18px]"
           style={{ background: color + "22", color }}
         >
           {icon}
         </div>
-        <div className="text-[11px] uppercase tracking-wider text-secondary font-medium">{label}</div>
+        <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-secondary font-medium leading-tight">{label}</div>
       </div>
-      <div className="text-[26px] font-bold tabular-nums" style={{ color }}>{value}</div>
-      <div className="text-[11px] text-secondary mt-1">{sub}</div>
+      <div className="text-lg sm:text-[26px] font-bold tabular-nums" style={{ color }}>{value}</div>
+      <div className="text-[10px] sm:text-[11px] text-secondary mt-0.5 sm:mt-1 truncate">{sub}</div>
     </div>
   );
 }

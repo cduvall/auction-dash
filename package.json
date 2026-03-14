@@ -5,12 +5,21 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",
-    "api": "node server.js"
+    "dev:cf": "npm run build && npx wrangler pages dev dist --d1 DB=auction-dash-db",
+    "build": "vite build",
+    "deploy": "npm run build && npx wrangler pages deploy dist",
+    "api": "node server.js",
+    "db:create": "npx wrangler d1 create auction-dash-db",
+    "db:migrate": "npx wrangler d1 execute auction-dash-db --file=migrations/001_init.sql"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "wrangler": "^4.0.0"
+  },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.1",
     "@tanstack/react-query": "^5.90.21",

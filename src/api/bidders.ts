@@ -11,7 +11,23 @@ export async function fetchBiddersCached(auctionId: number): Promise<BidderStats
 }
 
 export async function refreshBidders(auctionId: number): Promise<BidderStats> {
-  const res = await fetch(url("/api/bidders", auctionId));
-  if (!res.ok) throw new Error("Failed to refresh bidders");
-  return res.json();
+  let cursor: number | null = 0;
+  let lastStats: BidderStats | null = null;
+
+  while (cursor !== null) {
+    const cursorParam = cursor > 0 ? `&cursor=${cursor}` : "";
+    const res = await fetch(url("/api/bidders", auctionId) + cursorParam);
+    if (!res.ok) throw new Error("Failed to refresh bidders");
+    const data = await res.json();
+    cursor = data.nextCursor ?? null;
+    lastStats = {
+      uniqueBidders: data.uniqueBidders,
+      activeLast24h: data.activeLast24h,
+      maxActiveBidders: data.maxActiveBidders,
+      lotsRefreshed: data.lotsRefreshed,
+      totalLots: data.totalLots,
+    };
+  }
+
+  return lastStats!;
 }

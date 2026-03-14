@@ -9,7 +9,7 @@ interface StatsGridProps {
 
 export function StatsGrid({ stats, onUntouchedClick }: StatsGridProps) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 sm:gap-3 mb-6">
       <StatCard label="Total Lots" value={stats.totalLots} sub={<>{stats.withBids} with bids, {stats.withoutBids} without</>} icon={Icons.grid} color="#d9a05b" />
       <StatCard label="Total Median Value" value={fmt(stats.totalMedianValue)} sub="Sum of all median estimates" icon={Icons.dollar} color="#909194" />
       <StatCard label="Total High Bids" value={fmt(stats.totalHighBids)} sub="Sum of all current bids" icon={Icons.trendUp} color="#cc7722" />

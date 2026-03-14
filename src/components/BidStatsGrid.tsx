@@ -14,7 +14,7 @@ export function BidStatsGrid({ stats, lots, bidderStats }: BidStatsGridProps) {
   const highestPrice = useMemo(() => [...lots].sort((a, b) => b.highBid - a.highBid)[0] ?? null, [lots]);
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 sm:gap-3 mb-6">
       <StatCard label="Total Bids" value={stats.totalBids} sub="Bids placed across all lots" icon={Icons.hammer} color="#d9a05b" />
       <StatCard label="Unique Bidders" value={bidderStats?.uniqueBidders ?? "-"} sub="" icon={Icons.users} color="#909194" />
       <StatCard label="Active (24h)" value={bidderStats?.activeLast24h ?? "-"} sub={<>Peak: {bidderStats?.maxActiveBidders ?? "-"}</>} icon={Icons.activity} color="#6b705c" />

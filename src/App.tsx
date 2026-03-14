@@ -154,7 +154,7 @@ export function App() {
         />
       )}
 
-      <div className="max-w-[1400px] mx-auto px-5 py-5">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-5 py-4 sm:py-5">
         {view === "dashboard" && lotsData && (
           <>
             <StatsGrid stats={lotsData.stats} onUntouchedClick={() => setView("untouched")} />

@@ -1,8 +1,11 @@
 node_modules/
 data/
+dist/
 .claude/
+.wrangler/
 auctions.json
 hidden.json
 favorites.json
 history.json
 lots.json
+migrations/seed_data.sql

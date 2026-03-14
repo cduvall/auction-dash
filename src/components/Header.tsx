@@ -48,14 +48,14 @@ export function Header({
 
   return (
     <div className="bg-nav border-b border-elevated sticky top-0 z-50">
-      <div className="max-w-[1400px] mx-auto px-5">
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
         {/* Top row: brand + nav */}
-        <div className="flex items-center justify-between py-3">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold text-primary tracking-tight">AuctionDash</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2 py-3">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-primary tracking-tight shrink-0">AuctionDash</h1>
             {auctions.length > 1 && (
               <select
-                className="bg-surface border border-elevated text-primary px-3 py-1.5 rounded-lg text-[13px] font-sans outline-none cursor-pointer focus:border-ochre"
+                className="bg-surface border border-elevated text-primary px-2 sm:px-3 py-1.5 rounded-lg text-[13px] font-sans outline-none cursor-pointer focus:border-ochre min-w-0 truncate"
                 value={currentAuctionId ?? ""}
                 onChange={(e) => onAuctionChange(parseInt(e.target.value))}
               >
@@ -65,7 +65,7 @@ export function Header({
               </select>
             )}
             <button
-              className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre"
+              className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre shrink-0"
               onClick={onManageAuctions}
               title="Manage auctions"
             >
@@ -80,7 +80,7 @@ export function Header({
               <a
                 key={v.key}
                 href={`#${v.key === "dashboard" ? "" : v.key}`}
-                className={`text-[13px] font-medium px-3.5 py-1.5 rounded-lg transition-all no-underline cursor-pointer ${
+                className={`text-[12px] sm:text-[13px] font-medium px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all no-underline cursor-pointer whitespace-nowrap ${
                   currentView === v.key
                     ? "bg-terracotta border-terracotta text-primary"
                     : "text-secondary border border-elevated hover:border-ochre hover:text-ochre"
@@ -97,9 +97,9 @@ export function Header({
         </div>
 
         {/* Bottom row: toolbar */}
-        <div className="flex items-center gap-2 pb-3 -mt-1">
+        <div className="flex flex-wrap items-center gap-2 pb-3 -mt-1">
           <button
-            className={`border rounded-md p-1.5 cursor-pointer transition-all ${showHidden ? "bg-terracotta border-terracotta text-primary" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
+            className={`border rounded-md p-1.5 cursor-pointer transition-all shrink-0 ${showHidden ? "bg-terracotta border-terracotta text-primary" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
             onClick={onToggleShowHidden}
             title={showHidden ? "Hide hidden items" : "Show hidden items"}
           >
@@ -119,7 +119,7 @@ export function Header({
             </svg>
           </button>
           <button
-            className={`border rounded-md p-1.5 cursor-pointer transition-all ${hideFavorites ? "bg-terracotta border-terracotta text-primary" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
+            className={`border rounded-md p-1.5 cursor-pointer transition-all shrink-0 ${hideFavorites ? "bg-terracotta border-terracotta text-primary" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
             onClick={onToggleHideFavorites}
             title={hideFavorites ? "Show favorites in lists" : "Hide favorites from lists"}
           >
@@ -132,10 +132,10 @@ export function Header({
             </svg>
           </button>
 
-          <span className="w-px h-4 bg-elevated mx-0.5" />
+          <span className="w-px h-4 bg-elevated mx-0.5 hidden sm:block" />
 
           <button
-            className={`border rounded-md px-2 py-1.5 cursor-pointer transition-all inline-flex items-center gap-1 ${refreshInterval ? "bg-olive/20 border-olive/50 text-olive-light" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
+            className={`border rounded-md px-2 py-1.5 cursor-pointer transition-all inline-flex items-center gap-1 shrink-0 ${refreshInterval ? "bg-olive/20 border-olive/50 text-olive-light" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
             onClick={onCycleRefreshInterval}
             title={`Auto-refresh: ${intervalLabel}. Click to cycle.`}
           >
@@ -148,7 +148,7 @@ export function Header({
             <span className="text-[10px] font-semibold">{intervalLabel}</span>
           </button>
           <button
-            className="bg-terracotta text-primary border-none px-4 py-1.5 rounded-md text-[12px] font-semibold font-sans cursor-pointer transition-all hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-terracotta text-primary border-none px-3 sm:px-4 py-1.5 rounded-md text-[12px] font-semibold font-sans cursor-pointer transition-all hover:opacity-85 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             disabled={isRefreshing}
             onClick={onRefresh}
           >
@@ -159,13 +159,11 @@ export function Header({
             )}
           </button>
 
-          <div className="ml-auto">
-            {fetchedAt && (
-              <span className="text-[11px] text-secondary">
-                Updated {new Date(fetchedAt).toLocaleTimeString()}
-              </span>
-            )}
-          </div>
+          {fetchedAt && (
+            <span className="text-[11px] text-secondary ml-auto whitespace-nowrap">
+              Updated {new Date(fetchedAt).toLocaleTimeString()}
+            </span>
+          )}
         </div>
       </div>
     </div>
