@@ -10,7 +10,9 @@ export function LotActions({ lot, onToggleHide, onToggleFavorite }: LotActionsPr
   return (
     <>
       <button
-        className={lot.favorited ? "fav-btn active" : "fav-btn"}
+        className={`bg-transparent border-none cursor-pointer p-0.5 leading-none inline-flex items-center justify-center transition-all ${
+          lot.favorited ? "opacity-70 text-ochre hover:opacity-100 hover:text-ochre-light" : "opacity-30 text-secondary hover:opacity-100 hover:text-ochre"
+        }`}
         onClick={() => onToggleFavorite(lot.lotNumber)}
         title={lot.favorited ? "Unfavorite" : "Favorite"}
       >
@@ -25,7 +27,9 @@ export function LotActions({ lot, onToggleHide, onToggleFavorite }: LotActionsPr
         </svg>
       </button>
       <button
-        className={lot.hidden ? "hide-btn unhide" : "hide-btn"}
+        className={`bg-transparent border-none cursor-pointer p-0.5 leading-none inline-flex items-center justify-center transition-all ${
+          lot.hidden ? "opacity-25 text-secondary hover:opacity-80 hover:text-olive" : "opacity-30 text-secondary hover:opacity-100 hover:text-ochre"
+        }`}
         onClick={() => onToggleHide(lot.lotNumber)}
         title={lot.hidden ? "Show" : "Hide"}
       >

@@ -1,9 +1,9 @@
-import { useMemo } from "react";
-import type { Lot } from "../types";
-import { SortableTable } from "./SortableTable";
-import { LotActions } from "./LotActions";
-import { LotName } from "./LotName";
+import { useState, useMemo } from "react";
+import type { Lot, SortDir } from "../types";
+import { LotCard } from "./LotCard";
+import { ListControls } from "./ListControls";
 import { fmt2 } from "../lib/format";
+import { compareLots } from "../lib/sort";
 
 interface Props {
   lots: Lot[];
@@ -13,36 +13,62 @@ interface Props {
   onToggleFavorite: (lotNumber: string) => void;
 }
 
+const sortOptions = [
+  { key: "highBid", label: "High Bid" },
+  { key: "bidCount", label: "Bids" },
+  { key: "median", label: "Median" },
+  { key: "lotNumber", label: "Lot #" },
+];
+
+const limits = [5, 10, 25];
+
 export function HighestPriced({ lots, showHidden, hideFavorites, onToggleHide, onToggleFavorite }: Props) {
+  const [sortCol, setSortCol] = useState("highBid");
+  const [sortDir, setSortDir] = useState<SortDir>(-1);
+  const [limit, setLimit] = useState(10);
+
   const data = useMemo(() => {
-    return lots
+    const pool = lots
       .filter((l) => {
         if (l.hidden && !showHidden) return false;
         if (l.favorited && hideFavorites) return false;
         return l.highBid > 0;
       })
-      .sort((a, b) => a.highBid - b.highBid)
-      .slice(0, 10);
-  }, [lots, showHidden, hideFavorites]);
-
-  const columns = [
-    { key: "lotNumber", label: "Item", render: (l: Lot) => <LotName lot={l} /> },
-    { key: "highBid", label: "High Bid", numeric: true, render: (l: Lot) => <span className="val-yellow">{fmt2(l.highBid)}</span> },
-    { key: "median", label: "Median Est.", numeric: true, render: (l: Lot) => l.median != null ? fmt2(l.median) : "-" },
-    { key: "bidCount", label: "Bids", numeric: true, render: (l: Lot) => l.bidCount },
-  ];
+      .sort((a, b) => b.highBid - a.highBid)
+      .slice(0, limit);
+    return pool.sort((a, b) => compareLots(a, b, sortCol, sortDir));
+  }, [lots, showHidden, hideFavorites, sortCol, sortDir, limit]);
 
   return (
-    <div className="section highlight-section">
-      <div className="section-title">Lowest Priced Items <span className="badge">Top 10</span></div>
-      <SortableTable
-        id="highest-priced-table"
-        columns={columns}
-        data={data}
-        defaultSortCol="highBid"
-        defaultSortDir={1}
-        actions={(l) => <LotActions lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite} />}
-      />
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
+          Highest Priced Items <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">Top {limit}</span>
+        </div>
+      </div>
+      <div className="mb-3">
+        <ListControls
+          sortOptions={sortOptions}
+          sortCol={sortCol}
+          sortDir={sortDir}
+          onSort={setSortCol}
+          onToggleDir={() => setSortDir((d) => (d === 1 ? -1 : 1))}
+          limits={limits}
+          activeLimit={limit}
+          onLimitChange={setLimit}
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        {data.map((l) => (
+          <LotCard key={l.id} lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite}>
+            <div className="flex items-center gap-4 text-[11px] text-secondary">
+              <span>Median: <span className="text-primary">{l.median != null ? fmt2(l.median) : "-"}</span></span>
+              <span>Bid: <span className="text-ochre">{fmt2(l.highBid)}</span></span>
+              <span>Bids: <span className="text-primary">{l.bidCount}</span></span>
+            </div>
+          </LotCard>
+        ))}
+      </div>
     </div>
   );
 }

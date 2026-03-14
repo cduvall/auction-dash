@@ -1,10 +1,10 @@
-import { useMemo } from "react";
-import type { Lot } from "../types";
-import { SortableTable } from "./SortableTable";
-import { LotActions } from "./LotActions";
-import { LotName } from "./LotName";
+import { useState, useMemo } from "react";
+import type { Lot, SortDir } from "../types";
+import { LotCard } from "./LotCard";
+import { DiscountBadge } from "./DiscountBadge";
+import { ListControls } from "./ListControls";
 import { fmt, fmt2 } from "../lib/format";
-import { DiscountCell } from "./DiscountCell";
+import { compareLots } from "../lib/sort";
 
 interface Props {
   lots: Lot[];
@@ -14,37 +14,64 @@ interface Props {
   onToggleFavorite: (lotNumber: string) => void;
 }
 
+const sortOptions = [
+  { key: "discount", label: "Discount" },
+  { key: "highBid", label: "High Bid" },
+  { key: "median", label: "Median" },
+  { key: "bidCount", label: "Bids" },
+  { key: "lotNumber", label: "Lot #" },
+];
+
+const limits = [5, 10, 25];
+
 export function Underpriced({ lots, showHidden, hideFavorites, onToggleHide, onToggleFavorite }: Props) {
+  const [sortCol, setSortCol] = useState("discount");
+  const [sortDir, setSortDir] = useState<SortDir>(-1);
+  const [limit, setLimit] = useState(10);
+
   const data = useMemo(() => {
-    return lots
+    const pool = lots
       .filter((l) => {
         if (l.hidden && !showHidden) return false;
         if (l.favorited && hideFavorites) return false;
         return l.highBid > 0 && l.discount > 0;
       })
-      .sort((a, b) => (b.discount ?? 0) - (a.discount ?? 0))
-      .slice(0, 20);
-  }, [lots, showHidden, hideFavorites]);
-
-  const columns = [
-    { key: "lotNumber", label: "Item", render: (l: Lot) => <LotName lot={l} /> },
-    { key: "median", label: "Median Est.", numeric: true, render: (l: Lot) => l.median != null ? fmt2(l.median) : "-" },
-    { key: "highBid", label: "High Bid", numeric: true, render: (l: Lot) => fmt2(l.highBid) },
-    { key: "savings", label: "Savings", numeric: true, render: (l: Lot) => <span className="val-green">{l.median != null ? fmt(l.median - l.highBid) : "-"}</span> },
-    { key: "discount", label: "Discount", numeric: true, render: (l: Lot) => <DiscountCell discount={l.discount} highBid={l.highBid} /> },
-  ];
+      .sort((a, b) => b.discount - a.discount)
+      .slice(0, limit);
+    return pool.sort((a, b) => compareLots(a, b, sortCol, sortDir));
+  }, [lots, showHidden, hideFavorites, sortCol, sortDir, limit]);
 
   return (
-    <div className="section">
-      <div className="section-title">Top Underpriced Lots <span className="badge">Top {data.length}</span></div>
-      <SortableTable
-        id="underpriced-table"
-        columns={columns}
-        data={data}
-        defaultSortCol="discount"
-        defaultSortDir={-1}
-        actions={(l) => <LotActions lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite} />}
-      />
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
+          Top Underpriced Lots <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">Top {limit}</span>
+        </div>
+      </div>
+      <div className="mb-3">
+        <ListControls
+          sortOptions={sortOptions}
+          sortCol={sortCol}
+          sortDir={sortDir}
+          onSort={setSortCol}
+          onToggleDir={() => setSortDir((d) => (d === 1 ? -1 : 1))}
+          limits={limits}
+          activeLimit={limit}
+          onLimitChange={setLimit}
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        {data.map((l) => (
+          <LotCard key={l.id} lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite}>
+            <div className="flex items-center gap-4 text-[11px] text-secondary">
+              <span>Median: <span className="text-primary">{l.median != null ? fmt2(l.median) : "-"}</span></span>
+              <span>Bid: <span className="text-primary">{fmt2(l.highBid)}</span></span>
+              <span>Saves: <span className="text-olive">{l.median != null ? fmt(l.median - l.highBid) : "-"}</span></span>
+            </div>
+            <div className="mt-1"><DiscountBadge discount={l.discount} /></div>
+          </LotCard>
+        ))}
+      </div>
     </div>
   );
 }

@@ -12,22 +12,24 @@ interface StatCardProps {
 export function StatCard({ label, value, sub, icon, color, onClick }: StatCardProps) {
   return (
     <div
-      className={`stat-card${onClick ? " clickable" : ""}`}
+      className={`bg-surface border border-elevated rounded-lg p-4 shadow-[0_4px_12px_rgba(0,0,0,0.5)]${onClick ? " cursor-pointer hover:border-ochre transition-colors" : ""}`}
       onClick={onClick}
     >
-      <div className="stat-card-header">
-        <div className="stat-icon" style={{ background: color + "22", color }}>
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: color + "22", color }}
+        >
           {icon}
         </div>
-        <div className="label">{label}</div>
+        <div className="text-[11px] uppercase tracking-wider text-secondary font-medium">{label}</div>
       </div>
-      <div className="value" style={{ color }}>{value}</div>
-      <div className="sub">{sub}</div>
+      <div className="text-[26px] font-bold tabular-nums" style={{ color }}>{value}</div>
+      <div className="text-[11px] text-secondary mt-1">{sub}</div>
     </div>
   );
 }
 
-// SVG icons sized 18x18 for stat cards
 export const Icons = {
   grid: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

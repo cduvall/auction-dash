@@ -1,10 +1,10 @@
-import { useMemo } from "react";
-import type { Lot } from "../types";
-import { SortableTable } from "./SortableTable";
-import { LotActions } from "./LotActions";
-import { LotName } from "./LotName";
-import { DiscountCell } from "./DiscountCell";
+import { useState, useMemo } from "react";
+import type { Lot, SortDir } from "../types";
+import { LotCard } from "./LotCard";
+import { DiscountBadge } from "./DiscountBadge";
+import { ListControls } from "./ListControls";
 import { fmt2, fmtClose } from "../lib/format";
+import { compareLots } from "../lib/sort";
 
 interface Props {
   lots: Lot[];
@@ -12,32 +12,59 @@ interface Props {
   onToggleFavorite: (lotNumber: string) => void;
 }
 
-export function Favorites({ lots, onToggleHide, onToggleFavorite }: Props) {
-  const favs = useMemo(() => lots.filter((l) => l.favorited), [lots]);
+const sortOptions = [
+  { key: "discount", label: "Discount" },
+  { key: "highBid", label: "High Bid" },
+  { key: "bidCount", label: "Bids" },
+  { key: "lotNumber", label: "Lot #" },
+  { key: "closeTime", label: "Closes" },
+];
 
-  const columns = [
-    { key: "lotNumber", label: "Item", render: (l: Lot) => <LotName lot={l} /> },
-    { key: "median", label: "Median Est.", numeric: true, render: (l: Lot) => l.median != null ? fmt2(l.median) : "-" },
-    { key: "highBid", label: "High Bid", numeric: true, render: (l: Lot) => <span style={{ color: l.highBid > 0 ? "var(--text)" : "var(--text2)" }}>{fmt2(l.highBid)}</span> },
-    { key: "bidCount", label: "Bids", numeric: true, render: (l: Lot) => l.bidCount },
-    { key: "discount", label: "Discount", numeric: true, render: (l: Lot) => <DiscountCell discount={l.discount} highBid={l.highBid} scale={0.6} /> },
-    { key: "closeTime", label: "Closes", numeric: true, render: (l: Lot) => fmtClose(l.closeTime) },
-  ];
+export function Favorites({ lots, onToggleHide, onToggleFavorite }: Props) {
+  const [sortCol, setSortCol] = useState("discount");
+  const [sortDir, setSortDir] = useState<SortDir>(-1);
+
+  const favs = useMemo(
+    () => lots.filter((l) => l.favorited).sort((a, b) => compareLots(a, b, sortCol, sortDir)),
+    [lots, sortCol, sortDir]
+  );
 
   return (
-    <div className="section">
-      <div className="section-title">Favorites <span className="badge">{favs.length}</span></div>
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
+          Favorites <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">{favs.length}</span>
+        </div>
+      </div>
       {favs.length === 0 ? (
-        <div className="history-empty">No favorites yet. Star a lot from any table to add it here.</div>
+        <div className="text-secondary text-center py-10">No favorites yet. Star a lot from any table to add it here.</div>
       ) : (
-        <SortableTable
-          id="favorites-table"
-          columns={columns}
-          data={favs}
-          defaultSortCol="discount"
-          defaultSortDir={-1}
-          actions={(l) => <LotActions lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite} />}
-        />
+        <>
+          <div className="mb-3">
+            <ListControls
+              sortOptions={sortOptions}
+              sortCol={sortCol}
+              sortDir={sortDir}
+              onSort={setSortCol}
+              onToggleDir={() => setSortDir((d) => (d === 1 ? -1 : 1))}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            {favs.map((l) => (
+              <LotCard key={l.id} lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite}>
+                <div className="flex items-center gap-4 text-[11px] text-secondary">
+                  <span>Median: <span className="text-primary">{l.median != null ? fmt2(l.median) : "-"}</span></span>
+                  <span>Bid: <span className={l.highBid > 0 ? "text-primary" : "text-secondary"}>{fmt2(l.highBid)}</span></span>
+                  <span>Bids: <span className="text-primary">{l.bidCount}</span></span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <DiscountBadge discount={l.discount} />
+                  <span className="text-[11px] text-secondary">{fmtClose(l.closeTime)}</span>
+                </div>
+              </LotCard>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -70,18 +70,18 @@ export function HistoryCharts({ auctionId }: Props) {
     queryFn: () => fetchHistory(auctionId),
   });
 
-  if (isLoading) return <div className="history-empty">Loading history...</div>;
+  if (isLoading) return <div className="text-secondary text-center py-10">Loading history...</div>;
   if (!history || history.length === 0) {
-    return <div className="history-empty">No history data yet. Refresh the dashboard to start collecting snapshots.</div>;
+    return <div className="text-secondary text-center py-10">No history data yet. Refresh the dashboard to start collecting snapshots.</div>;
   }
 
   const labels = history.map((h) => h.timestamp);
 
   return (
     <>
-      <div className="chart-section">
-        <div className="section-title">Dollar Trends</div>
-        <div className="chart-box">
+      <div className="mb-6">
+        <div className="text-sm font-semibold uppercase tracking-wider text-secondary mb-3">Dollar Trends</div>
+        <div className="bg-surface border border-elevated rounded-lg p-4 h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
           <Line
             data={{
               datasets: [
@@ -93,9 +93,9 @@ export function HistoryCharts({ auctionId }: Props) {
           />
         </div>
       </div>
-      <div className="chart-section">
-        <div className="section-title">Discount Trends</div>
-        <div className="chart-box">
+      <div className="mb-6">
+        <div className="text-sm font-semibold uppercase tracking-wider text-secondary mb-3">Discount Trends</div>
+        <div className="bg-surface border border-elevated rounded-lg p-4 h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
           <Line
             data={{
               datasets: [
@@ -107,9 +107,9 @@ export function HistoryCharts({ auctionId }: Props) {
           />
         </div>
       </div>
-      <div className="chart-section">
-        <div className="section-title">Lot Counts</div>
-        <div className="chart-box">
+      <div className="mb-6">
+        <div className="text-sm font-semibold uppercase tracking-wider text-secondary mb-3">Lot Counts</div>
+        <div className="bg-surface border border-elevated rounded-lg p-4 h-72 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
           <Line
             data={{
               datasets: [

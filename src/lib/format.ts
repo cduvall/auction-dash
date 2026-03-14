@@ -29,14 +29,6 @@ export function fmtClose(iso: string | null): string {
   });
 }
 
-export function discountColor(d: number): string {
-  if (d >= 90) return "var(--accent-olive)";
-  if (d >= 70) return "#8a9070";
-  if (d >= 50) return "var(--accent-ochre)";
-  if (d >= 30) return "var(--accent-orange)";
-  return "var(--accent-terracotta)";
-}
-
 export function barWidth(d: number): number {
   return Math.min(Math.max(d, 0), 100);
 }
