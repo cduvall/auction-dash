@@ -60,6 +60,7 @@ export function Header({
 
   const views: { key: ViewName; label: string }[] = [
     { key: "dashboard", label: "Dashboard" },
+    { key: "all", label: "All Lots" },
     { key: "favorites", label: "Favorites" },
     { key: "history", label: "History" },
   ];

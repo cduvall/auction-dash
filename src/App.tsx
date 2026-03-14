@@ -28,7 +28,7 @@ export function App() {
   const [auctionId, setAuctionId] = useState<number | null>(null);
   const [view, setView] = useState<ViewName>(() => {
     const hash = window.location.hash.slice(1);
-    return ["history", "favorites", "untouched"].includes(hash) ? (hash as ViewName) : "dashboard";
+    return ["all", "history", "favorites", "untouched"].includes(hash) ? (hash as ViewName) : "dashboard";
   });
   const [showHidden, setShowHidden] = useState(false);
   const [hideFavorites, setHideFavorites] = useState(false);
@@ -230,14 +230,17 @@ export function App() {
                 onToggleFavorite={handleToggleFavorite}
               />
             </div>
-            <AllLots
-              lots={lotsData.lots}
-              showHidden={showHidden}
-              hideFavorites={hideFavorites}
-              onToggleHide={handleToggleHide}
-              onToggleFavorite={handleToggleFavorite}
-            />
           </>
+        )}
+
+        {view === "all" && lotsData && (
+          <AllLots
+            lots={lotsData.lots}
+            showHidden={showHidden}
+            hideFavorites={hideFavorites}
+            onToggleHide={handleToggleHide}
+            onToggleFavorite={handleToggleFavorite}
+          />
         )}
 
         {view === "favorites" && lotsData && (

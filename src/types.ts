@@ -68,5 +68,5 @@ export interface AuthUser {
 
 export type SortCol = string;
 export type SortDir = 1 | -1;
-export type ViewName = "dashboard" | "favorites" | "untouched" | "history";
+export type ViewName = "dashboard" | "all" | "favorites" | "untouched" | "history";
 export type BidFilter = "bids" | "nobids" | null;
