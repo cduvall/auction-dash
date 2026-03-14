@@ -19,9 +19,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       page++;
     }
 
+    const user = (context.data as any).user;
+    const userId = user?.id;
     const [hiddenSet, favoritesSet] = await Promise.all([
-      getHiddenSet(db, auctionId),
-      getFavoritesSet(db, auctionId),
+      getHiddenSet(db, auctionId, userId),
+      getFavoritesSet(db, auctionId, userId),
     ]);
 
     let totalMedian = 0;

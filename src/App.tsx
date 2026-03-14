@@ -5,6 +5,7 @@ import { toggleHide, toggleFavorite } from "./api/lots";
 import { useAuctions } from "./hooks/useAuctions";
 import { useLots } from "./hooks/useLots";
 import { useBidders } from "./hooks/useBidders";
+import { useAuth } from "./hooks/useAuth";
 import { Header } from "./components/Header";
 import { StatsGrid } from "./components/StatsGrid";
 import { BidStatsGrid } from "./components/BidStatsGrid";
@@ -18,9 +19,11 @@ import { Untouched } from "./components/Untouched";
 import { HistoryCharts } from "./components/HistoryCharts";
 import { LoadingOverlay } from "./components/LoadingOverlay";
 import { AuctionManager } from "./components/AuctionManager";
+import { MigrationPrompt } from "./components/MigrationPrompt";
 import type { Auction } from "./types";
 
 export function App() {
+  const { user, hasAnonymousData } = useAuth();
   const { data: auctions = [] } = useAuctions();
   const [auctionId, setAuctionId] = useState<number | null>(null);
   const [view, setView] = useState<ViewName>(() => {
@@ -32,6 +35,10 @@ export function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState<number | false>(false);
   const [showAuctionManager, setShowAuctionManager] = useState(false);
+  const [showMigration, setShowMigration] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("migrate") === "1";
+  });
 
   const queryClient = useQueryClient();
   const { data: lotsData, isLoading } = useLots(auctionId, refreshInterval);
@@ -152,6 +159,14 @@ export function App() {
           onUpdate={handleAuctionsUpdated}
           onClose={() => setShowAuctionManager(false)}
         />
+      )}
+
+      {showMigration && user && hasAnonymousData && !user.migratedAnonymous && (
+        <MigrationPrompt onDone={() => {
+          setShowMigration(false);
+          window.history.replaceState({}, "", "/");
+          queryClient.invalidateQueries({ queryKey: ["lots"] });
+        }} />
       )}
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 py-4 sm:py-5">

@@ -58,6 +58,14 @@ export interface HistorySnapshot {
   maxRatioLot: { lotNumber: string; name: string } | null;
 }
 
+export interface AuthUser {
+  id: number;
+  githubId: number;
+  username: string;
+  avatarUrl: string | null;
+  migratedAnonymous: boolean;
+}
+
 export type SortCol = string;
 export type SortDir = 1 | -1;
 export type ViewName = "dashboard" | "favorites" | "untouched" | "history";

@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Auction, ViewName } from "../types";
+import { useAuth } from "../hooks/useAuth";
+import { UserMenu } from "./UserMenu";
 
 interface HeaderProps {
   auctions: Auction[];
@@ -36,6 +38,7 @@ export function Header({
   onCycleRefreshInterval,
   onManageAuctions,
 }: HeaderProps) {
+  const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -79,20 +82,23 @@ export function Header({
                 ))}
               </select>
             )}
-            <button
-              className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre shrink-0"
-              onClick={onManageAuctions}
-              title="Manage auctions"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-            </button>
+            {user && (
+              <button
+                className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre shrink-0"
+                onClick={onManageAuctions}
+                title="Manage auctions"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </button>
+            )}
           </div>
 
-          {/* Desktop nav */}
-          <nav className="hidden sm:flex gap-1">
+          {/* Desktop nav + user */}
+          <div className="hidden sm:flex items-center gap-3">
+          <nav className="flex gap-1">
             {views.map((v) => (
               <a
                 key={v.key}
@@ -111,42 +117,47 @@ export function Header({
               </a>
             ))}
           </nav>
+          <UserMenu />
+          </div>
 
-          {/* Mobile hamburger */}
-          <div className="relative sm:hidden" ref={menuRef}>
-            <button
-              className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre"
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Menu"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-surface border border-elevated rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.6)] py-1 min-w-[140px] z-50">
-                {views.map((v) => (
-                  <a
-                    key={v.key}
-                    href={`#${v.key === "dashboard" ? "" : v.key}`}
-                    className={`block px-4 py-2 text-[13px] font-medium no-underline transition-colors ${
-                      currentView === v.key
-                        ? "text-terracotta bg-terracotta/10"
-                        : "text-secondary hover:text-primary hover:bg-elevated/50"
-                    }`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onViewChange(v.key);
-                      setMenuOpen(false);
-                    }}
-                  >
-                    {v.label}
-                  </a>
-                ))}
-              </div>
-            )}
+          {/* Mobile: hamburger + user */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <UserMenu />
+            <div className="relative" ref={menuRef}>
+              <button
+                className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre"
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label="Menu"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-surface border border-elevated rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.6)] py-1 min-w-[140px] z-50">
+                  {views.map((v) => (
+                    <a
+                      key={v.key}
+                      href={`#${v.key === "dashboard" ? "" : v.key}`}
+                      className={`block px-4 py-2 text-[13px] font-medium no-underline transition-colors ${
+                        currentView === v.key
+                          ? "text-terracotta bg-terracotta/10"
+                          : "text-secondary hover:text-primary hover:bg-elevated/50"
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onViewChange(v.key);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      {v.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

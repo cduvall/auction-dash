@@ -1,4 +1,5 @@
 import type { Lot } from "../types";
+import { useAuth } from "../hooks/useAuth";
 
 interface LotActionsProps {
   lot: Lot;
@@ -7,14 +8,24 @@ interface LotActionsProps {
 }
 
 export function LotActions({ lot, onToggleHide, onToggleFavorite }: LotActionsProps) {
+  const { user } = useAuth();
+
+  function handleClick(action: () => void) {
+    if (!user) {
+      window.location.href = "/api/auth/login";
+      return;
+    }
+    action();
+  }
+
   return (
     <>
       <button
         className={`bg-transparent border-none cursor-pointer p-0.5 leading-none inline-flex items-center justify-center transition-all ${
           lot.favorited ? "opacity-70 text-ochre hover:opacity-100 hover:text-ochre-light" : "opacity-30 text-secondary hover:opacity-100 hover:text-ochre"
         }`}
-        onClick={() => onToggleFavorite(lot.lotNumber)}
-        title={lot.favorited ? "Unfavorite" : "Favorite"}
+        onClick={() => handleClick(() => onToggleFavorite(lot.lotNumber))}
+        title={user ? (lot.favorited ? "Unfavorite" : "Favorite") : "Sign in to favorite"}
       >
         <svg width="12" height="12" viewBox="0 0 14 14">
           <polygon
@@ -30,8 +41,8 @@ export function LotActions({ lot, onToggleHide, onToggleFavorite }: LotActionsPr
         className={`bg-transparent border-none cursor-pointer p-0.5 leading-none inline-flex items-center justify-center transition-all ${
           lot.hidden ? "opacity-25 text-secondary hover:opacity-80 hover:text-olive" : "opacity-30 text-secondary hover:opacity-100 hover:text-ochre"
         }`}
-        onClick={() => onToggleHide(lot.lotNumber)}
-        title={lot.hidden ? "Show" : "Hide"}
+        onClick={() => handleClick(() => onToggleHide(lot.lotNumber))}
+        title={user ? (lot.hidden ? "Show" : "Hide") : "Sign in to hide"}
       >
         <svg width="12" height="12" viewBox="0 0 14 14">
           <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />

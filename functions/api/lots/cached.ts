@@ -9,9 +9,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.json({ error: "no cached data" }, { status: 404 });
   }
 
+  const user = (context.data as any).user;
+  const userId = user?.id;
   const [hiddenSet, favoritesSet] = await Promise.all([
-    getHiddenSet(db, auctionId),
-    getFavoritesSet(db, auctionId),
+    getHiddenSet(db, auctionId, userId),
+    getFavoritesSet(db, auctionId, userId),
   ]);
 
   const updated = {

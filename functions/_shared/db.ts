@@ -1,13 +1,19 @@
 import type { Snapshot } from "./snapshot";
 import { snapshotChanged } from "./snapshot";
 
-export async function getHiddenSet(db: D1Database, auctionId: number): Promise<Set<string>> {
-  const { results } = await db.prepare("SELECT lot_number FROM hidden WHERE auction_id = ?").bind(auctionId).all();
+export async function getHiddenSet(db: D1Database, auctionId: number, userId?: number): Promise<Set<string>> {
+  const query = userId != null
+    ? db.prepare("SELECT lot_number FROM hidden WHERE auction_id = ? AND user_id = ?").bind(auctionId, userId)
+    : db.prepare("SELECT lot_number FROM hidden WHERE auction_id = ? AND user_id IS NULL").bind(auctionId);
+  const { results } = await query.all();
   return new Set(results.map((r: any) => r.lot_number));
 }
 
-export async function getFavoritesSet(db: D1Database, auctionId: number): Promise<Set<string>> {
-  const { results } = await db.prepare("SELECT lot_number FROM favorites WHERE auction_id = ?").bind(auctionId).all();
+export async function getFavoritesSet(db: D1Database, auctionId: number, userId?: number): Promise<Set<string>> {
+  const query = userId != null
+    ? db.prepare("SELECT lot_number FROM favorites WHERE auction_id = ? AND user_id = ?").bind(auctionId, userId)
+    : db.prepare("SELECT lot_number FROM favorites WHERE auction_id = ? AND user_id IS NULL").bind(auctionId);
+  const { results } = await query.all();
   return new Set(results.map((r: any) => r.lot_number));
 }
 
