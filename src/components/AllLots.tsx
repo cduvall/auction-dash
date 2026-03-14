@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { Lot, BidFilter, SortDir } from "../types";
 import { LotCard } from "./LotCard";
 import { DiscountBadge } from "./DiscountBadge";
@@ -25,12 +25,25 @@ const sortOptions = [
 
 export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggleFavorite }: Props) {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [filter, setFilter] = useState<BidFilter>(null);
   const [sortCol, setSortCol] = useState("discount");
   const [sortDir, setSortDir] = useState<SortDir>(-1);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (search === debouncedSearch) return;
+    setIsSearching(true);
+    timerRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setIsSearching(false);
+    }, 250);
+    return () => clearTimeout(timerRef.current);
+  }, [search, debouncedSearch]);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     return lots
       .filter((l) => {
         if (l.hidden && !showHidden) return false;
@@ -41,7 +54,7 @@ export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggl
         return true;
       })
       .sort((a, b) => compareLots(a, b, sortCol, sortDir));
-  }, [lots, search, filter, sortCol, sortDir, showHidden, hideFavorites]);
+  }, [lots, debouncedSearch, filter, sortCol, sortDir, showHidden, hideFavorites]);
 
   function toggleFilter(f: "bids" | "nobids") {
     setFilter((prev) => (prev === f ? null : f));
@@ -55,12 +68,17 @@ export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggl
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3 mb-3">
-        <input
-          className="bg-elevated border border-elevated text-primary rounded-md px-3 py-1.5 text-sm outline-none focus:border-ochre transition-colors w-full sm:w-56"
-          placeholder="Search lots..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="relative w-full sm:w-56">
+          <input
+            className="bg-elevated border border-elevated text-primary rounded-md px-3 py-1.5 text-sm outline-none focus:border-ochre transition-colors w-full"
+            placeholder="Search lots..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {isSearching && (
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 inline-block w-3.5 h-3.5 border-2 border-transparent border-t-ochre rounded-full animate-spin" />
+          )}
+        </div>
         <button
           className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${filter === "bids" ? "bg-ochre/20 border-ochre text-ochre" : "bg-elevated border-elevated text-secondary hover:text-primary"}`}
           onClick={() => toggleFilter("bids")}
@@ -73,7 +91,9 @@ export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggl
         >
           No Bids
         </button>
-        <span className="text-secondary text-xs">{filtered.length} shown</span>
+        <span className="text-secondary text-xs">
+          {isSearching ? "Searching..." : `${filtered.length} shown`}
+        </span>
       </div>
       <div className="mb-3">
         <ListControls
