@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Auction } from "../types";
 import { lookupAuction, addAuction, updateAuction, removeAuction } from "../api/auctions";
 
@@ -17,6 +17,14 @@ export function AuctionManager({ auctions, currentAuctionId, onUpdate, onClose }
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   async function handleLookup() {
     if (!input.trim()) return;
