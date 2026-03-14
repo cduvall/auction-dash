@@ -124,7 +124,7 @@ export function App() {
     }
   }, [queryClient, auctionId]);
 
-  if (isLoading && !lotsData) return <LoadingOverlay />;
+  if (user && isLoading && !lotsData) return <LoadingOverlay />;
 
   return (
     <>
@@ -178,6 +178,22 @@ export function App() {
       )}
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 py-4 sm:py-5">
+        {!user && (
+          <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-4">
+            <img src="/logo.png" alt="AuctionDash" className="h-12 sm:h-16 mb-8" />
+            <h2 className="text-xl sm:text-2xl font-bold text-primary mb-3 text-center">Track auctions in real time</h2>
+            <p className="text-sm sm:text-base text-secondary text-center max-w-md mb-8 leading-relaxed">
+              Monitor bids, spot underpriced lots, track price history, and organize your favorites across multiple HiBid auctions.
+            </p>
+            <a
+              href="/api/auth/login"
+              className="bg-terracotta text-primary border-none px-8 py-3 rounded-lg text-sm font-semibold no-underline transition-all hover:opacity-85 shadow-[0_4px_12px_rgba(179,93,67,0.3)]"
+            >
+              Sign in to get started
+            </a>
+          </div>
+        )}
+
         {view === "dashboard" && lotsData && (
           <>
             <StatsGrid stats={lotsData.stats} onUntouchedClick={() => setView("untouched")} />

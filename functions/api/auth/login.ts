@@ -35,25 +35,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     .bind(email)
     .first<{ id: number; migrated_anonymous: number }>();
 
-  // Seed user_auctions from global auctions table if user has none
+  // Check if this is the user's first login (no auctions yet)
   const hasAuctions = await db
     .prepare("SELECT 1 FROM user_auctions WHERE user_id = ? LIMIT 1")
     .bind(userRow!.id)
     .first();
   const isFirstLogin = !hasAuctions;
-  if (isFirstLogin) {
-    const { results: globalAuctions } = await db
-      .prepare("SELECT id, title FROM auctions")
-      .all<{ id: number; title: string }>();
-    if (globalAuctions.length > 0) {
-      await db.batch(
-        globalAuctions.map((a) =>
-          db.prepare("INSERT OR IGNORE INTO user_auctions (user_id, auction_id, title) VALUES (?, ?, ?)")
-            .bind(userRow!.id, a.id, a.title)
-        )
-      );
-    }
-  }
 
   // Check if anonymous data exists for migration prompt
   const hasAnon = await db

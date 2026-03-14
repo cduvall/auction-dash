@@ -1,5 +1,3 @@
-const DEFAULT_AUCTION_ID = 720405;
-
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const user = (context.data as any).user;
 
@@ -10,9 +8,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return Response.json(results);
   }
 
-  // Anonymous: return default auction from global table
-  const row = await context.env.DB.prepare("SELECT id, title FROM auctions WHERE id = ?").bind(DEFAULT_AUCTION_ID).first();
-  return Response.json(row ? [row] : []);
+  // Anonymous: no auctions
+  return Response.json([]);
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

@@ -26,6 +26,24 @@ export function AuctionManager({ auctions, currentAuctionId, onUpdate, onClose }
     return () => document.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
+  // Auto-lookup default auction when user has no auctions yet
+  useEffect(() => {
+    if (auctions.length === 0 && !lookup && !loading) {
+      setInput("720405");
+      setLoading(true);
+      setError("");
+      lookupAuction("720405")
+        .then((result) => {
+          setLookup(result);
+          setTitle(result.title);
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Lookup failed");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, []);
+
   async function handleLookup() {
     if (!input.trim()) return;
     setLoading(true);

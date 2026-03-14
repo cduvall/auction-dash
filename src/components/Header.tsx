@@ -67,10 +67,10 @@ export function Header({
   return (
     <div className="bg-nav border-b border-elevated sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
-        {/* Top row: brand + nav */}
+        {/* Top row: logo + controls */}
         <div className="flex items-center justify-between gap-2 py-3">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <h1 className="text-base sm:text-lg font-bold text-primary tracking-tight shrink-0">AuctionDash</h1>
+            <img src="/logo.png" alt="AuctionDash" className="h-7 sm:h-8 shrink-0" />
             {auctions.length > 1 && (
               <select
                 className="bg-surface border border-elevated text-primary px-2 sm:px-3 py-1.5 rounded-lg text-[13px] font-sans outline-none cursor-pointer focus:border-ochre min-w-0 truncate"
@@ -96,34 +96,9 @@ export function Header({
             )}
           </div>
 
-          {/* Desktop nav + user */}
-          <div className="hidden sm:flex items-center gap-3">
-          <nav className="flex gap-1">
-            {views.map((v) => (
-              <a
-                key={v.key}
-                href={`#${v.key === "dashboard" ? "" : v.key}`}
-                className={`text-[13px] font-medium px-3.5 py-1.5 rounded-lg transition-all no-underline cursor-pointer whitespace-nowrap ${
-                  currentView === v.key
-                    ? "bg-terracotta border-terracotta text-primary"
-                    : "text-secondary border border-elevated hover:border-ochre hover:text-ochre"
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onViewChange(v.key);
-                }}
-              >
-                {v.label}
-              </a>
-            ))}
-          </nav>
-          <UserMenu />
-          </div>
-
-          {/* Mobile: hamburger + user */}
-          <div className="flex items-center gap-2 sm:hidden">
+          <div className="flex items-center gap-2">
             <UserMenu />
-            <div className="relative" ref={menuRef}>
+            {user && <div className="relative" ref={menuRef}>
               <button
                 className="bg-surface border border-elevated text-secondary rounded-md p-1.5 cursor-pointer transition-all hover:border-ochre hover:text-ochre"
                 onClick={() => setMenuOpen((o) => !o)}
@@ -157,12 +132,12 @@ export function Header({
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
 
-        {/* Bottom row: toolbar */}
-        <div className="flex flex-wrap items-center gap-2 pb-3 -mt-1">
+        {/* Bottom row: toolbar (authenticated only) */}
+        {user && <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pb-3 -mt-1">
           <button
             className={`border rounded-md p-1.5 cursor-pointer transition-all shrink-0 ${showHidden ? "bg-terracotta border-terracotta text-primary" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
             onClick={onToggleShowHidden}
@@ -197,7 +172,7 @@ export function Header({
             </svg>
           </button>
 
-          <span className="w-px h-4 bg-elevated mx-0.5 hidden sm:block" />
+          <span className="w-px h-4 bg-elevated mx-0.5" />
 
           <button
             className={`border rounded-md px-2 py-1.5 cursor-pointer transition-all inline-flex items-center gap-1 shrink-0 ${refreshInterval ? "bg-olive/20 border-olive/50 text-olive-light" : "bg-surface border-elevated text-secondary hover:border-ochre hover:text-ochre"}`}
@@ -229,7 +204,7 @@ export function Header({
               Updated {new Date(fetchedAt).toLocaleTimeString()}
             </span>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );
