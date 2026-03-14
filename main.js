@@ -255,7 +255,7 @@ function renderStats(stats) {
     <div class="stat-card">
       <div class="label">Active (24h)</div>
       <div class="value val-green" id="bidder-active">-</div>
-      <div class="sub">Bidders seen in last 24h</div>
+      <div class="sub">Peak: <span id="bidder-max">-</span></div>
     </div>
     <div class="stat-card">
       <div class="label">Most Contested</div>
@@ -580,9 +580,6 @@ function showData() {
   renderAll();
   if (currentView === "favorites") renderFavorites();
   if (currentView === "untouched") renderUntouched();
-  const t = new Date(DATA.fetchedAt);
-  document.getElementById("fetched-at").textContent =
-    "Updated " + t.toLocaleTimeString();
   document.getElementById("loading").style.display = "none";
 }
 
@@ -590,8 +587,10 @@ function updateBidderCard(stats) {
   const el = document.getElementById("bidder-count");
   const sub = document.getElementById("bidder-sub");
   const active = document.getElementById("bidder-active");
+  const max = document.getElementById("bidder-max");
   if (el) el.textContent = stats.uniqueBidders;
   if (active && stats.activeLast24h != null) active.textContent = stats.activeLast24h;
+  if (max && stats.maxActiveBidders) max.textContent = stats.maxActiveBidders;
   if (sub && stats.lotsRefreshed != null) {
     sub.textContent = `${stats.lotsRefreshed} lots updated`;
   }
@@ -626,6 +625,7 @@ async function loadCached() {
     DATA = await res.json();
     showData();
     loadBiddersCached();
+    scheduleAutoRefresh();
   } catch {
     return loadData();
   }
@@ -650,11 +650,39 @@ async function loadData() {
     btn.disabled = false;
     btn.textContent = "Refresh";
     loading.style.display = "none";
+    scheduleAutoRefresh();
   }
 }
 
+// Auto-refresh every 5 minutes
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
+let autoRefreshTimer = null;
+let nextRefreshAt = null;
+
+function scheduleAutoRefresh() {
+  clearTimeout(autoRefreshTimer);
+  nextRefreshAt = Date.now() + AUTO_REFRESH_MS;
+  autoRefreshTimer = setTimeout(() => {
+    loadData();
+  }, AUTO_REFRESH_MS);
+  updateCountdown();
+}
+
+function updateCountdown() {
+  const el = document.getElementById("fetched-at");
+  if (!el || !nextRefreshAt) return;
+  const remaining = Math.max(0, nextRefreshAt - Date.now());
+  const mins = Math.floor(remaining / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  const timeStr = DATA ? "Updated " + new Date(DATA.fetchedAt).toLocaleTimeString() : "";
+  el.textContent = `${timeStr} (next in ${mins}:${secs.toString().padStart(2, "0")})`;
+  if (remaining > 0) requestAnimationFrame(updateCountdown);
+}
+
 // Wire up event listeners
-document.getElementById("refresh-btn").addEventListener("click", loadData);
+document.getElementById("refresh-btn").addEventListener("click", () => {
+  loadData();
+});
 document.getElementById("search").addEventListener("input", renderAllTable);
 document.getElementById("filter-bids").addEventListener("click", () => toggleFilter("bids"));
 document.getElementById("filter-nobids").addEventListener("click", () => toggleFilter("nobids"));

@@ -315,6 +315,27 @@ async function fetchAllLots(auctionId) {
     };
   });
 
+  // Recover final prices for closed lots from bidder cache
+  const bidderCache = loadBidderCache(auctionId);
+  for (const lot of lots) {
+    const cached = bidderCache.lots[lot.id];
+    if (!cached) continue;
+    if (lot.highBid === 0 && cached.maxBid > 0) {
+      lot.highBid = cached.maxBid;
+      lot.discount = lot.median != null && lot.median > 0
+        ? ((lot.median - lot.highBid) / lot.median) * 100
+        : 0;
+      // Recount into stats
+      totalBids += lot.highBid;
+      withBidsCount++;
+      discountSum += lot.discount;
+    }
+    if (lot.bidCount === 0 && cached.bidCount > 0) {
+      lot.bidCount = cached.bidCount;
+      totalBidCount += cached.bidCount;
+    }
+  }
+
   const avgDiscount = withBidsCount > 0 ? discountSum / withBidsCount : 0;
 
   return {
@@ -342,12 +363,13 @@ function readBody(req) {
 }
 
 // Bidder tracking
-// bidders.json shape: { lots: { [lotId]: { highBid, usernames: [string] } }, activity: [ { username, timestamp } ] }
+// bidders.json shape: { lots: { [lotId]: { highBid, usernames: [string] } }, activity: [ { username, timestamp } ], maxActiveBidders: number }
 
 function loadBidderCache(auctionId) {
   const raw = loadJson(path.join(getDataDir(auctionId), "bidders.json"), {});
   // Migrate old format (flat lot map) to new format with activity log
-  if (!raw.lots) return { lots: raw, activity: [] };
+  if (!raw.lots) return { lots: raw, activity: [], maxActiveBidders: 0 };
+  if (raw.maxActiveBidders == null) raw.maxActiveBidders = 0;
   return raw;
 }
 
@@ -369,9 +391,14 @@ function computeBidderStats(cache) {
     }
   }
 
+  // Derive peak from all activity if not yet tracked
+  const allActiveUsernames = new Set(cache.activity.map(a => a.username));
+  const peak = Math.max(cache.maxActiveBidders || 0, allActiveUsernames.size);
+
   return {
     uniqueBidders: allUsernames.size,
     activeLast24h: recentUsernames.size,
+    maxActiveBidders: peak,
   };
 }
 
@@ -395,7 +422,7 @@ async function refreshBidders(auctionId, lots) {
 
   for (const lot of lots) {
     const cached = cache.lots[lot.id];
-    if (!cached || cached.highBid !== lot.highBid) {
+    if (!cached || cached.highBid !== lot.highBid || cached.maxBid === undefined || !cached.v) {
       toFetch.push(lot);
     }
   }
@@ -412,7 +439,9 @@ async function refreshBidders(auctionId, lots) {
       try {
         const bids = await fetchBidHistory(lot.id);
         const usernames = [...new Set(bids.map(b => b.username).filter(Boolean))];
-        return { id: lot.id, highBid: lot.highBid, usernames };
+        const maxBid = bids.length > 0 ? Math.max(...bids.map(b => b.bid)) : 0;
+        const bidCount = bids.reduce((sum, b) => sum + (b.count || 0), 0);
+        return { id: lot.id, highBid: lot.highBid, usernames, maxBid, bidCount };
       } catch (err) {
         console.error(`Failed to fetch bids for lot ${lot.id}: ${err.message}`);
         return null;
@@ -428,7 +457,7 @@ async function refreshBidders(auctionId, lots) {
           cache.activity.push({ username: u, timestamp: now });
         }
       }
-      cache.lots[r.id] = { highBid: r.highBid, usernames: r.usernames };
+      cache.lots[r.id] = { highBid: r.highBid, usernames: r.usernames, maxBid: r.maxBid, bidCount: r.bidCount, v: 1 };
     }
   }
 
@@ -436,9 +465,13 @@ async function refreshBidders(auctionId, lots) {
   const pruneAfter = Date.now() - 48 * 60 * 60 * 1000;
   cache.activity = cache.activity.filter(a => new Date(a.timestamp).getTime() >= pruneAfter);
 
-  saveBidderCache(auctionId, cache);
-
+  // Track peak active bidders
   const stats = computeBidderStats(cache);
+  if (stats.activeLast24h > (cache.maxActiveBidders || 0)) {
+    cache.maxActiveBidders = stats.activeLast24h;
+  }
+
+  saveBidderCache(auctionId, cache);
   return { ...stats, lotsRefreshed: toFetch.length, totalLots: lots.length };
 }
 
