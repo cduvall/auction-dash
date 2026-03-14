@@ -1,16 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchLots, fetchLotsCached } from "../api/lots";
 
-const REFETCH_INTERVAL = 5 * 60 * 1000;
-
-export function useLots(auctionId: number | null) {
+export function useLots(auctionId: number | null, refetchInterval: number | false = false) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: ["lots", auctionId],
     queryFn: async () => {
       if (!auctionId) throw new Error("No auction selected");
-      // Try cached first
       try {
         return await fetchLotsCached(auctionId);
       } catch {
@@ -18,8 +15,8 @@ export function useLots(auctionId: number | null) {
       }
     },
     enabled: auctionId != null,
-    refetchInterval: REFETCH_INTERVAL,
-    staleTime: REFETCH_INTERVAL,
+    refetchInterval,
+    staleTime: refetchInterval || Infinity,
   });
 
   const refresh = async () => {

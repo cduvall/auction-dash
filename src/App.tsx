@@ -17,6 +17,8 @@ import { Favorites } from "./components/Favorites";
 import { Untouched } from "./components/Untouched";
 import { HistoryCharts } from "./components/HistoryCharts";
 import { LoadingOverlay } from "./components/LoadingOverlay";
+import { AuctionManager } from "./components/AuctionManager";
+import type { Auction } from "./types";
 
 export function App() {
   const { data: auctions = [] } = useAuctions();
@@ -28,11 +30,13 @@ export function App() {
   const [showHidden, setShowHidden] = useState(false);
   const [hideFavorites, setHideFavorites] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState<number | false>(false);
+  const [showAuctionManager, setShowAuctionManager] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: lotsData, isLoading } = useLots(auctionId);
+  const { data: lotsData, isLoading } = useLots(auctionId, refreshInterval);
   const { data: bidderStats } = useBidders(auctionId);
-  const { refresh: refreshLots } = useLots(auctionId);
+  const { refresh: refreshLots } = useLots(auctionId, refreshInterval);
   const { refresh: refreshBiddersData } = useBidders(auctionId);
 
   useEffect(() => {
@@ -104,6 +108,14 @@ export function App() {
     setAuctionId(id);
   }, []);
 
+  const handleAuctionsUpdated = useCallback((updated: Auction[]) => {
+    queryClient.setQueryData(["auctions"], updated);
+    // If current auction was removed, switch to first available
+    if (auctionId && !updated.find(a => a.id === auctionId)) {
+      setAuctionId(updated.length > 0 ? updated[0].id : null);
+    }
+  }, [queryClient, auctionId]);
+
   if (isLoading && !lotsData) return <LoadingOverlay />;
 
   return (
@@ -121,7 +133,26 @@ export function App() {
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
         fetchedAt={lotsData?.fetchedAt ?? null}
+        refreshInterval={refreshInterval}
+        onCycleRefreshInterval={() => {
+          setRefreshInterval((prev) => {
+            if (prev === false) return 60_000;
+            if (prev === 60_000) return 300_000;
+            if (prev === 300_000) return 3_600_000;
+            return false;
+          });
+        }}
+        onManageAuctions={() => setShowAuctionManager(true)}
       />
+
+      {showAuctionManager && (
+        <AuctionManager
+          auctions={auctions}
+          currentAuctionId={auctionId}
+          onUpdate={handleAuctionsUpdated}
+          onClose={() => setShowAuctionManager(false)}
+        />
+      )}
 
       <div className="max-w-[1400px] mx-auto px-5 py-5">
         {view === "dashboard" && lotsData && (

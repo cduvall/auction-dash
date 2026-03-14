@@ -7,9 +7,67 @@ const DATA_DIR = path.join(__dirname, "data");
 const GRAPHQL_URL = "https://hibid.com/graphql";
 const PAGE_SIZE = 100;
 
-// Load auction config
-const AUCTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "auctions.json"), "utf8"));
-const AUCTION_MAP = new Map(AUCTIONS.map(a => [a.id, a]));
+// Load auction config (mutable)
+const AUCTIONS_FILE = path.join(__dirname, "auctions.json");
+let AUCTIONS = JSON.parse(fs.readFileSync(AUCTIONS_FILE, "utf8"));
+let AUCTION_MAP = new Map(AUCTIONS.map(a => [a.id, a]));
+
+function saveAuctions() {
+  fs.writeFileSync(AUCTIONS_FILE, JSON.stringify(AUCTIONS, null, 2));
+  AUCTION_MAP = new Map(AUCTIONS.map(a => [a.id, a]));
+}
+
+function parseAuctionIdFromInput(input) {
+  const s = String(input).trim();
+  // Pure number
+  if (/^\d+$/.test(s)) return parseInt(s);
+  // URL like hibid.com/auctions/TITLE/720405 or hibid.com/auction/720405/...
+  const m = s.match(/hibid\.com\/(?:auctions?\/[^/]+\/|auction\/)(\d+)/i)
+    || s.match(/hibid\.com\/.*?(\d{5,})/i);
+  if (m) return parseInt(m[1]);
+  return null;
+}
+
+async function lookupAuctionTitle(auctionId) {
+  // Fetch a single lot page to get auction context
+  const res = await fetch(GRAPHQL_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      operationName: "LotSearchLotOnly",
+      variables: { auctionId, pageNumber: 1, pageLength: 1, sortOrder: "LOT_NUMBER" },
+      query: QUERY,
+    }),
+  });
+  if (!res.ok) throw new Error(`HiBid returned ${res.status}`);
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0]?.message || "GraphQL error");
+  const count = json.data?.lotSearch?.pagedResults?.totalCount ?? 0;
+  if (count === 0) throw new Error("No lots found for this auction ID");
+  // Try scraping auction page title
+  try {
+    const pageRes = await fetch(`https://hibid.com/auction/${auctionId}/x`);
+    if (pageRes.ok) {
+      const html = await pageRes.text();
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+      if (titleMatch) {
+        let title = titleMatch[1]
+          .replace(/\s*\|.*$/i, "")
+          .replace(/\s*-\s*HiBid.*$/i, "")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(c))
+          .replace(/&quot;/g, '"')
+          .trim();
+        if (title && title.length > 2 && !title.toLowerCase().includes("not found")) {
+          return { title, lotCount: count };
+        }
+      }
+    }
+  } catch {}
+  return { title: `Auction ${auctionId}`, lotCount: count };
+}
 
 // Per-auction state cache: { hiddenSet, favoritesSet, cachedLots }
 const auctionState = new Map();
@@ -480,14 +538,95 @@ seedHistory();
 
 const server = http.createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
   const parsed = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = parsed.pathname;
 
-  // Auction list endpoint (no auction param needed)
-  if (pathname === "/api/auctions") {
+  // Auction list
+  if (pathname === "/api/auctions" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(AUCTIONS));
+    return;
+  }
+
+  // Lookup auction title from HiBid
+  if (pathname === "/api/auctions/lookup" && req.method === "GET") {
+    try {
+      const input = parsed.searchParams.get("q") || "";
+      const id = parseAuctionIdFromInput(input);
+      if (!id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Could not parse auction ID from input" }));
+        return;
+      }
+      const info = await lookupAuctionTitle(id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ id, ...info }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Add auction
+  if (pathname === "/api/auctions" && req.method === "POST") {
+    try {
+      const { id, title } = JSON.parse(await readBody(req));
+      if (!id || !title) throw new Error("id and title required");
+      if (AUCTION_MAP.has(id)) throw new Error("Auction already exists");
+      AUCTIONS.push({ id, title });
+      saveAuctions();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, auctions: AUCTIONS }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Update auction title
+  if (pathname === "/api/auctions" && req.method === "PUT") {
+    try {
+      const { id, title } = JSON.parse(await readBody(req));
+      if (!id || !title) throw new Error("id and title required");
+      const auction = AUCTIONS.find(a => a.id === id);
+      if (!auction) throw new Error("Auction not found");
+      auction.title = title;
+      saveAuctions();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, auctions: AUCTIONS }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Remove auction
+  if (pathname === "/api/auctions" && req.method === "DELETE") {
+    try {
+      const { id } = JSON.parse(await readBody(req));
+      if (!id) throw new Error("id required");
+      const idx = AUCTIONS.findIndex(a => a.id === id);
+      if (idx === -1) throw new Error("Auction not found");
+      AUCTIONS.splice(idx, 1);
+      saveAuctions();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, auctions: AUCTIONS }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
     return;
   }
 
