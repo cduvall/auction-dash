@@ -124,7 +124,8 @@ export function App() {
     }
   }, [queryClient, auctionId]);
 
-  if (authLoading || (user && isLoading && !lotsData)) return <LoadingOverlay />;
+  if (authLoading) return null;
+  if (user && isLoading && !lotsData) return <LoadingOverlay />;
 
   return (
     <>
