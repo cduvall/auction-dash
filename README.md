@@ -1,58 +1,57 @@
 # AuctionDash
 
-A monitoring dashboard for HiBid auctions. Tracks lots, bids, bidders, and pricing trends across multiple auctions with per-auction data isolation.
+Real-time HiBid auction tracker. Monitor bids, spot underpriced lots, track price history, and organize favorites across multiple auctions.
+
+Live at **https://auction-dash.pages.dev**
+
+## Stack
+
+- **Frontend**: React 19, TypeScript, Tailwind CSS 4, TanStack Query, Vite
+- **Backend**: Cloudflare Pages Functions
+- **Database**: Cloudflare D1 (SQLite)
+- **Auth**: Cloudflare Access (one-time PIN / Google)
+- **CI/CD**: GitHub Actions deploys to Cloudflare Pages on push to main
 
 ## Features
 
-- **Lot tracking** -- estimates, high bids, bid counts, discounts, close times
-- **Bid history snapshots** -- trend charts for dollar values, discount percentages, and lot counts over time
-- **Bidder analytics** -- unique bidder count, 24h active bidders via smart incremental bid history refresh
-- **Favorites & hidden lots** -- star items to track, hide items to declutter, with server-side persistence
-- **Multi-auction support** -- switch between auctions via dropdown, each with isolated data
-- **Sortable tables** -- lowest priced, over estimate, underpriced, all lots, favorites, untouched
-- **SPA navigation** -- hash-based routing with keyboard support (Escape to dashboard)
+- Lot tracking with estimates, high bids, bid counts, discounts, close times
+- Dashboard widgets: lowest priced, highest priced, underpriced, over estimate
+- Bid history snapshots with trend charts
+- Bidder analytics with incremental refresh
+- Per-user favorites and hidden lots
+- Multi-auction support with per-user auction configuration
+- Sortable/filterable All Lots view with debounced search
+- Auto-refresh on configurable intervals
 
-## Setup
+## Development
 
 ```
 npm install
-cp auctions.example.json auctions.json
+npx wrangler pages dev dist --d1 DB=auction-dash-db
 ```
 
-Edit `auctions.json` with your HiBid auction IDs:
-
-```json
-[
-  { "id": 720405, "title": "Woodworking Auction" },
-  { "id": 123456, "title": "Another Auction" }
-]
-```
-
-Find the auction ID in the HiBid URL for the auction page.
-
-## Running
+Create a `.dev.vars` file with:
 
 ```
-npm run dev
+CF_ACCESS_TEAM_DOMAIN=https://auction-dash.cloudflareaccess.com
+CF_ACCESS_AUD=<your-aud-tag>
 ```
 
-This starts:
-- **API server** on port 3457 (proxied by Vite)
-- **Vite dev server** on port 3456
+## Deploy
 
-Open http://localhost:3456.
+Automatic on push to main via GitHub Actions.
 
-Data is not fetched automatically on page load. Click **Refresh** to pull lot data from HiBid. Bidder data is refreshed incrementally -- only lots with changed high bids are re-queried.
+Manual deploy:
 
-## Data Storage
+```
+npm run build
+npx wrangler pages deploy dist --project-name=auction-dash
+```
 
-Per-auction data is stored under `data/<auction-id>/`:
+## Database Migrations
 
-| File | Contents |
-|------|----------|
-| `hidden.json` | Hidden lot numbers |
-| `favorites.json` | Favorited lot numbers |
-| `history.json` | Snapshot time series for trend charts |
-| `bidders.json` | Bidder cache with activity log |
+Migrations live in `migrations/`. Run against remote D1:
 
-All data files are gitignored.
+```
+npx wrangler d1 execute auction-dash-db --remote --file=migrations/<file>.sql
+```
