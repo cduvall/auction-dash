@@ -1,11 +1,9 @@
-// Clear local CF cookies, then redirect to CF Access logout to clear team-domain cookies
+// Clear local CF cookies and redirect to CF Access logout to clear team-domain cookies.
+// After CF Access clears its cookies, the user lands back on the Access login gate
+// (which is fine — they'll see the PIN prompt next time they visit a protected route).
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const teamDomain = context.env.CF_ACCESS_TEAM_DOMAIN;
-  const appUrl = new URL(context.request.url).origin;
-
-  // Two-step: first clear app-domain cookies, then redirect to CF Access logout
-  // CF Access logout will clear team-domain cookies and redirect back
-  const logoutUrl = `${teamDomain}/cdn-cgi/access/logout?returnTo=${encodeURIComponent(appUrl)}`;
+  const logoutUrl = `${teamDomain}/cdn-cgi/access/logout`;
 
   return new Response(null, {
     status: 302,
