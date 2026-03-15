@@ -21,13 +21,26 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const email = payload.email;
   const username = email.split("@")[0];
 
+  // Fetch identity from CF Access to get display name
+  let displayName: string | null = null;
+  try {
+    const identityRes = await fetch(
+      `${context.env.CF_ACCESS_TEAM_DOMAIN}/cdn-cgi/access/get-identity`,
+      { headers: { Cookie: context.request.headers.get("Cookie") || "" } }
+    );
+    if (identityRes.ok) {
+      const identity = await identityRes.json<{ name?: string }>();
+      if (identity.name) displayName = identity.name;
+    }
+  } catch {}
+
   // Upsert user
   await db
     .prepare(
-      `INSERT INTO users (email, username) VALUES (?, ?)
-       ON CONFLICT(email) DO UPDATE SET username = excluded.username`
+      `INSERT INTO users (email, username, display_name) VALUES (?, ?, ?)
+       ON CONFLICT(email) DO UPDATE SET username = excluded.username, display_name = COALESCE(excluded.display_name, users.display_name)`
     )
-    .bind(email, username)
+    .bind(email, username, displayName)
     .run();
 
   const userRow = await db

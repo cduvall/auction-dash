@@ -14,15 +14,16 @@ async function authMiddleware(context: EventContext<Env, string, Record<string, 
     if (payload?.email) {
       // Look up user by email
       const user = await context.env.DB.prepare(
-        "SELECT id, email, username, avatar_url, migrated_anonymous FROM users WHERE email = ?"
+        "SELECT id, email, username, display_name, avatar_url, migrated_anonymous FROM users WHERE email = ?"
       ).bind(payload.email).first<{
-        id: number; email: string; username: string; avatar_url: string | null; migrated_anonymous: number;
+        id: number; email: string; username: string; display_name: string | null; avatar_url: string | null; migrated_anonymous: number;
       }>();
       if (user) {
         (context.data as any).user = {
           id: user.id,
           email: user.email,
           username: user.username,
+          displayName: user.display_name,
           avatarUrl: user.avatar_url,
           migratedAnonymous: user.migrated_anonymous === 1,
         };

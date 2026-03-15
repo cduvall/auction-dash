@@ -60,6 +60,7 @@ export function App() {
 
   useEffect(() => {
     window.location.hash = view === "dashboard" ? "" : view;
+    window.scrollTo(0, 0);
   }, [view]);
 
   useEffect(() => {
@@ -158,6 +159,7 @@ export function App() {
           auctions={auctions}
           currentAuctionId={auctionId}
           onUpdate={handleAuctionsUpdated}
+          onSelect={handleAuctionChange}
           onClose={() => {
             setShowAuctionManager(false);
             const url = new URL(window.location.href);

@@ -25,7 +25,7 @@ const limits = [5, 10, 25];
 export function HighestPriced({ lots, showHidden, hideFavorites, onToggleHide, onToggleFavorite }: Props) {
   const [sortCol, setSortCol] = useState("highBid");
   const [sortDir, setSortDir] = useState<SortDir>(-1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
 
   const data = useMemo(() => {
     const pool = lots
@@ -41,9 +41,23 @@ export function HighestPriced({ lots, showHidden, hideFavorites, onToggleHide, o
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-semibold uppercase tracking-wider text-secondary flex items-center gap-2">
-          Highest Priced Items <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">Top {limit}</span>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Highest Priced Items</span>
+        <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">Top {limit}</span>
+        <div className="flex items-center gap-1 ml-auto">
+          {limits.map((n) => (
+            <button
+              key={n}
+              className={`px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
+                limit === n
+                  ? "bg-olive/15 border-olive/50 text-olive-light"
+                  : "bg-elevated/60 border-elevated text-secondary hover:text-primary hover:border-olive/30"
+              }`}
+              onClick={() => setLimit(n)}
+            >
+              {n}
+            </button>
+          ))}
         </div>
       </div>
       <div className="mb-3">
@@ -53,9 +67,6 @@ export function HighestPriced({ lots, showHidden, hideFavorites, onToggleHide, o
           sortDir={sortDir}
           onSort={setSortCol}
           onToggleDir={() => setSortDir((d) => (d === 1 ? -1 : 1))}
-          limits={limits}
-          activeLimit={limit}
-          onLimitChange={setLimit}
         />
       </div>
       <div className="flex flex-col gap-1">

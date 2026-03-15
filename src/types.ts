@@ -62,6 +62,7 @@ export interface AuthUser {
   id: number;
   email: string;
   username: string;
+  displayName: string | null;
   avatarUrl: string | null;
   migratedAnonymous: boolean;
 }

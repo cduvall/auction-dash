@@ -36,7 +36,7 @@ export function UserMenu() {
         className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer p-0"
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="text-[13px] text-secondary">{user.username}</span>
+        <span className="text-[13px] text-secondary">{user.displayName || user.username}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 bg-surface border border-elevated rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.6)] py-1 min-w-[120px] z-50">
