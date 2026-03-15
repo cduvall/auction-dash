@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Auction, ViewName } from "../types";
 import { useAuth } from "../hooks/useAuth";
-import { UserMenu } from "./UserMenu";
+
 
 interface HeaderProps {
   auctions: Auction[];
@@ -160,16 +160,11 @@ export function Header({
             </div>
           )}
 
-          {/* Desktop: user menu */}
-          <div className="hidden sm:flex items-center gap-2 sm:ml-2">
-            <UserMenu />
-          </div>
-
-          {/* Mobile: sign in (when not logged in) */}
+          {/* Sign in link (when not logged in) */}
           {!user && (
             <a
               href="/api/auth/login"
-              className="sm:hidden text-[13px] font-medium text-secondary hover:text-ochre transition-colors no-underline whitespace-nowrap"
+              className="text-[13px] font-medium text-secondary hover:text-ochre transition-colors no-underline whitespace-nowrap ml-auto sm:ml-2"
             >
               Sign in
             </a>
