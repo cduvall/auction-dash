@@ -22,7 +22,7 @@ import { AuctionManager } from "@/features/auctions/components/AuctionManager";
 import { MigrationPrompt } from "@/features/auth/components/MigrationPrompt";
 
 export function App() {
-  const { user, hasAnonymousData } = useAuth();
+  const { user, hasAnonymousData, loading: authLoading } = useAuth();
   const { data: auctions = [] } = useAuctions();
   const [auctionId, setAuctionId] = useState<number | null>(null);
   const [view, setView] = useState<ViewName>(() => {
@@ -124,7 +124,7 @@ export function App() {
     }
   }, [queryClient, auctionId]);
 
-  if (user && isLoading && !lotsData) return <LoadingOverlay />;
+  if (authLoading || (user && isLoading && !lotsData)) return <LoadingOverlay />;
 
   return (
     <>
