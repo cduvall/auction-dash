@@ -11,8 +11,14 @@ export async function fetchMe(): Promise<MeResponse> {
   return res.json();
 }
 
-export function logout(): void {
-  window.location.href = "/api/auth/logout";
+export async function logout(): Promise<void> {
+  try {
+    // Hit our logout endpoint to clear cookies, then redirect home
+    await fetch("/api/auth/logout", { redirect: "manual" });
+  } catch {
+    // Even if the CF Access logout fails, cookies are cleared by the response
+  }
+  window.location.href = "/";
 }
 
 export async function migrateAnonymous(skip: boolean): Promise<void> {
