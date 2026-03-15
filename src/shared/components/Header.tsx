@@ -136,7 +136,7 @@ export function Header({
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
         <div className="flex items-center gap-2 py-2.5">
           {/* Mobile: hamburger left spacer for centering logo */}
-          <div className="w-[34px] sm:hidden shrink-0" />
+          {user && <div className="w-[34px] sm:hidden shrink-0" />}
 
           {/* Logo - centered on mobile, left on desktop */}
           <img src="/logo.png" alt="AuctionDash" className="h-7 sm:h-8 shrink-0 mx-auto sm:mx-0" />
