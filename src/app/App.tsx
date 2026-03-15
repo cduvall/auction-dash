@@ -24,7 +24,15 @@ import { MigrationPrompt } from "@/features/auth/components/MigrationPrompt";
 export function App() {
   const { user, hasAnonymousData, loading: authLoading } = useAuth();
   const { data: auctions = [] } = useAuctions();
-  const [auctionId, setAuctionId] = useState<number | null>(null);
+  const [auctionId, setAuctionIdRaw] = useState<number | null>(() => {
+    const saved = localStorage.getItem("auctionId");
+    return saved ? Number(saved) : null;
+  });
+  const setAuctionId = useCallback((id: number | null) => {
+    setAuctionIdRaw(id);
+    if (id != null) localStorage.setItem("auctionId", String(id));
+    else localStorage.removeItem("auctionId");
+  }, []);
   const [view, setView] = useState<ViewName>(() => {
     const hash = window.location.hash.slice(1);
     return ["all", "history", "favorites", "untouched"].includes(hash) ? (hash as ViewName) : "dashboard";
@@ -47,10 +55,11 @@ export function App() {
   const { refresh: refreshBiddersData } = useBidders(auctionId);
 
   useEffect(() => {
-    if (auctions.length > 0 && auctionId == null) {
+    if (auctions.length === 0) return;
+    if (auctionId == null || !auctions.some((a) => a.id === auctionId)) {
       setAuctionId(auctions[0].id);
     }
-  }, [auctions, auctionId]);
+  }, [auctions, auctionId, setAuctionId]);
 
   useEffect(() => {
     const auction = auctions.find((a) => a.id === auctionId);

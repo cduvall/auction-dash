@@ -79,6 +79,7 @@ export function HistoryCharts({ auctionId }: Props) {
   }
 
   const labels = history.map((h) => h.timestamp);
+  const hasEstimates = history.some((h) => h.gap !== 0);
 
   return (
     <>
@@ -89,7 +90,7 @@ export function HistoryCharts({ auctionId }: Props) {
             data={{
               datasets: [
                 ds("Total High Bids", labels, history.map((h) => h.totalHighBids), "#d9a05b"),
-                ds("Value Gap", labels, history.map((h) => h.gap), "#6b705c"),
+                ...(hasEstimates ? [ds("Value Gap", labels, history.map((h) => h.gap), "#6b705c")] : []),
               ],
             }}
             options={chartOptions(fmt)}

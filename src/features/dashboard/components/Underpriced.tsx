@@ -71,18 +71,24 @@ export function Underpriced({ lots, showHidden, hideFavorites, onToggleHide, onT
           onToggleDir={() => setSortDir((d) => (d === 1 ? -1 : 1))}
         />
       </div>
-      <div className="flex flex-col gap-1">
-        {data.map((l) => (
-          <LotCard key={l.id} lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite}>
-            <div className="flex items-center gap-4 text-[11px] text-secondary">
-              <span>Median: <span className="text-primary">{l.median != null ? fmt2(l.median) : "-"}</span></span>
-              <span>Bid: <span className="text-primary">{fmt2(l.highBid)}</span></span>
-              <span>Saves: <span className="text-olive">{l.median != null ? fmt(l.median - l.highBid) : "-"}</span></span>
-            </div>
-            <div className="mt-1"><DiscountBadge discount={l.discount} /></div>
-          </LotCard>
-        ))}
-      </div>
+      {data.length === 0 ? (
+        <div className="bg-surface border border-elevated rounded-lg p-5 text-secondary text-center text-sm">
+          No items currently underpriced
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {data.map((l) => (
+            <LotCard key={l.id} lot={l} onToggleHide={onToggleHide} onToggleFavorite={onToggleFavorite}>
+              <div className="flex items-center gap-4 text-[11px] text-secondary">
+                <span>Median: <span className="text-primary">{l.median != null ? fmt2(l.median) : "-"}</span></span>
+                <span>Bid: <span className="text-primary">{fmt2(l.highBid)}</span></span>
+                <span>Saves: <span className="text-olive">{l.median != null ? fmt(l.median - l.highBid) : "-"}</span></span>
+              </div>
+              <div className="mt-1"><DiscountBadge discount={l.discount} /></div>
+            </LotCard>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
