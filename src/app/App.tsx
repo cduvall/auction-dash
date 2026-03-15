@@ -181,22 +181,25 @@ export function App() {
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 py-4 sm:py-5">
         {!user && (
-          <div className="flex flex-col items-center justify-center py-16 sm:py-24 px-4">
-            <img src="/logo.png" alt="AuctionDash" className="h-12 sm:h-16 mb-8" />
-            <h2 className="text-xl sm:text-2xl font-bold text-primary mb-3 text-center">Track auctions in real time</h2>
-            <p className="text-sm sm:text-base text-secondary text-center max-w-md mb-8 leading-relaxed">
-              Monitor bids, spot underpriced lots, track price history, and organize your favorites across multiple HiBid auctions.
-            </p>
-            <a
-              href="/api/auth/login"
-              className="bg-terracotta text-primary border-none px-8 py-3 rounded-lg text-sm font-semibold no-underline transition-all hover:opacity-85 shadow-[0_4px_12px_rgba(179,93,67,0.3)]"
-            >
-              Sign in to get started
-            </a>
-          </div>
+          <>
+            <div className="flex flex-col items-center justify-center pt-16 sm:pt-24 px-4 relative z-10">
+              <img src="/logo.png" alt="AuctionDash" className="h-12 sm:h-16 mb-8" />
+              <h2 className="text-xl sm:text-2xl font-bold text-primary mb-3 text-center">Track auctions in real time</h2>
+              <p className="text-sm sm:text-base text-secondary text-center max-w-md mb-8 leading-relaxed">
+                Monitor bids, spot underpriced lots, track price history, and organize your favorites across multiple HiBid auctions.
+              </p>
+              <a
+                href="/api/auth/login"
+                className="bg-terracotta text-primary border-none px-8 py-3 rounded-lg text-sm font-semibold no-underline transition-all hover:opacity-85 shadow-[0_4px_12px_rgba(179,93,67,0.3)]"
+              >
+                Sign in to get started
+              </a>
+            </div>
+            <DemoPreview />
+          </>
         )}
 
-        {view === "dashboard" && lotsData && (
+        {user && view === "dashboard" && lotsData && (
           <>
             <StatsGrid stats={lotsData.stats} onUntouchedClick={() => setView("untouched")} />
             <BidStatsGrid stats={lotsData.stats} lots={lotsData.lots} bidderStats={bidderStats} />
@@ -235,7 +238,7 @@ export function App() {
           </>
         )}
 
-        {view === "all" && lotsData && (
+        {user && view === "all" && lotsData && (
           <AllLots
             lots={lotsData.lots}
             showHidden={showHidden}
@@ -245,7 +248,7 @@ export function App() {
           />
         )}
 
-        {view === "favorites" && lotsData && (
+        {user && view === "favorites" && lotsData && (
           <Favorites
             lots={lotsData.lots}
             onToggleHide={handleToggleHide}
@@ -253,7 +256,7 @@ export function App() {
           />
         )}
 
-        {view === "untouched" && lotsData && (
+        {user && view === "untouched" && lotsData && (
           <Untouched
             lots={lotsData.lots}
             showHidden={showHidden}
@@ -263,10 +266,84 @@ export function App() {
           />
         )}
 
-        {view === "history" && auctionId && (
+        {user && view === "history" && auctionId && (
           <HistoryCharts auctionId={auctionId} />
         )}
       </div>
     </>
+  );
+}
+
+const demoStats = [
+  { label: "Total Lots", value: "247", sub: "189 with bids, 58 without", color: "#d9a05b" },
+  { label: "Total Median Value", value: "$84,320", sub: "Sum of all median estimates", color: "#909194" },
+  { label: "Total High Bids", value: "$51,475", sub: "Sum of all current bids", color: "#cc7722" },
+  { label: "Value Gap", value: "$32,845", sub: "Median value minus bids", color: "#6b705c" },
+  { label: "Avg Discount", value: "-39%", sub: "Avg % below median (items w/ bids)", color: "#b35d43" },
+  { label: "Untouched", value: "58", sub: "Lots with zero bids", color: "#b35d43" },
+];
+
+const demoLots = [
+  { name: "001 - Vintage Oak Writing Desk", median: "$450", bid: "$85", bids: 3 },
+  { name: "014 - Sterling Silver Tea Service", median: "$1,200", bid: "$340", bids: 7 },
+  { name: "027 - Mid-Century Modern Armchair", median: "$800", bid: "$195", bids: 4 },
+  { name: "033 - Antique Brass Telescope", median: "$350", bid: "$110", bids: 2 },
+  { name: "041 - Hand-Knotted Persian Rug 8x10", median: "$2,400", bid: "$620", bids: 9 },
+];
+
+function DemoPreview() {
+  return (
+    <div className="relative mt-12 select-none pointer-events-none" aria-hidden="true">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-base z-10" />
+      <div className="opacity-50 blur-[1px]">
+        <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 sm:gap-3 mb-6">
+          {demoStats.map((s) => (
+            <div key={s.label} className="bg-surface border border-elevated rounded-lg p-3 sm:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-secondary font-medium mb-1.5">{s.label}</div>
+              <div className="text-lg sm:text-[26px] font-bold tabular-nums" style={{ color: s.color }}>{s.value}</div>
+              <div className="text-[10px] sm:text-[11px] text-secondary mt-0.5">{s.sub}</div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Lowest Priced Items</span>
+              <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">Top 5</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {demoLots.map((l) => (
+                <div key={l.name} className="bg-surface border border-elevated rounded-md px-3 py-2">
+                  <div className="text-primary font-medium text-[13px] leading-tight mb-0.5">{l.name}</div>
+                  <div className="flex items-center gap-4 text-[11px] text-secondary">
+                    <span>Median: <span className="text-primary">{l.median}</span></span>
+                    <span>Bid: <span className="text-ochre">{l.bid}</span></span>
+                    <span>Bids: <span className="text-primary">{l.bids}</span></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm font-semibold uppercase tracking-wider text-secondary">Highest Priced Items</span>
+              <span className="bg-elevated text-secondary text-[10px] px-2 py-0.5 rounded-full font-medium">Top 5</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              {[...demoLots].reverse().map((l) => (
+                <div key={l.name} className="bg-surface border border-elevated rounded-md px-3 py-2">
+                  <div className="text-primary font-medium text-[13px] leading-tight mb-0.5">{l.name}</div>
+                  <div className="flex items-center gap-4 text-[11px] text-secondary">
+                    <span>Median: <span className="text-primary">{l.median}</span></span>
+                    <span>Bid: <span className="text-ochre">{l.bid}</span></span>
+                    <span>Bids: <span className="text-primary">{l.bids}</span></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
