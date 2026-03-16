@@ -1,6 +1,20 @@
+export interface AuctionMetadata {
+  bidOpenDateTime: string | null;
+  bidCloseDateTime: string | null;
+  previewDateInfo: string | null;
+  checkoutDateInfo: string | null;
+  status: string | null;
+  bidType: string | null;
+  buyerPremiumRate: number | null;
+  description: string | null;
+  location: string | null;
+  auctioneerName: string | null;
+}
+
 export interface Auction {
   id: number;
   title: string;
+  metadata?: AuctionMetadata | null;
 }
 
 export interface Lot {

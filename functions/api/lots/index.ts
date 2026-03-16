@@ -10,7 +10,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   try {
     // Fetch all lots from HiBid
-    let allResults: any[] = [];
+    const allResults: any[] = [];
     let page = 1;
     while (true) {
       const data = await fetchPage(auctionId, page);

@@ -30,7 +30,7 @@ export function AllLots({ lots, showHidden, hideFavorites, onToggleHide, onToggl
   const [filter, setFilter] = useState<BidFilter>(null);
   const [sortCol, setSortCol] = useState("discount");
   const [sortDir, setSortDir] = useState<SortDir>(-1);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (search === debouncedSearch) return;

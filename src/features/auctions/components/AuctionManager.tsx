@@ -12,7 +12,7 @@ interface Props {
 
 export function AuctionManager({ auctions, currentAuctionId, onUpdate, onSelect, onClose }: Props) {
   const [input, setInput] = useState("");
-  const [lookup, setLookup] = useState<{ id: number; title: string; lotCount: number } | null>(null);
+  const [lookup, setLookup] = useState<{ id: number; title: string; lotCount: number; metadata?: any } | null>(null);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,7 +66,7 @@ export function AuctionManager({ auctions, currentAuctionId, onUpdate, onSelect,
     setLoading(true);
     setError("");
     try {
-      const updated = await addAuction(lookup.id, title.trim());
+      const updated = await addAuction(lookup.id, title.trim(), lookup.metadata);
       onUpdate(updated);
       setInput("");
       setLookup(null);

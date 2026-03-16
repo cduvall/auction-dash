@@ -82,7 +82,70 @@ export async function fetchBidHistory(lotId: number) {
   return json.data.bidHistory.bids || [];
 }
 
-export async function lookupAuctionTitle(auctionId: number): Promise<{ title: string; lotCount: number }> {
+const AUCTION_METADATA_QUERY = `query AuctionMetadata($id: Int!) {
+  auction(id: $id) {
+    id eventName bidType description
+    bidOpenDateTime bidCloseDateTime
+    previewDateInfo checkoutDateInfo
+    buyerPremiumRate auctionNotice
+    auctionState { auctionStatus }
+    auctioneer { name city state address }
+    eventCity eventState eventZip
+  }
+}`;
+
+export interface AuctionMetadata {
+  bidOpenDateTime: string | null;
+  bidCloseDateTime: string | null;
+  previewDateInfo: string | null;
+  checkoutDateInfo: string | null;
+  status: string | null;
+  bidType: string | null;
+  buyerPremiumRate: number | null;
+  description: string | null;
+  location: string | null;
+  auctioneerName: string | null;
+}
+
+export async function fetchAuctionMetadata(auctionId: number): Promise<AuctionMetadata | null> {
+  try {
+    const res = await fetch(GRAPHQL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        operationName: "AuctionMetadata",
+        variables: { id: auctionId },
+        query: AUCTION_METADATA_QUERY,
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as any;
+    if (json.errors || !json.data?.auction) return null;
+    const a = json.data.auction;
+
+    const locationParts = [a.eventCity, a.eventState, a.eventZip].filter(Boolean);
+    const location = locationParts.length > 0
+      ? `${a.eventCity || ""}${a.eventCity && a.eventState ? ", " : ""}${a.eventState || ""} ${a.eventZip || ""}`.trim()
+      : null;
+
+    return {
+      bidOpenDateTime: a.bidOpenDateTime || null,
+      bidCloseDateTime: a.bidCloseDateTime || null,
+      previewDateInfo: a.previewDateInfo || null,
+      checkoutDateInfo: a.checkoutDateInfo || null,
+      status: a.auctionState?.auctionStatus || null,
+      bidType: a.bidType || null,
+      buyerPremiumRate: a.buyerPremiumRate ?? null,
+      description: a.description || null,
+      location,
+      auctioneerName: a.auctioneer?.name || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function lookupAuctionTitle(auctionId: number): Promise<{ title: string; lotCount: number; metadata: AuctionMetadata | null }> {
   const res = await fetch(GRAPHQL_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -98,13 +161,15 @@ export async function lookupAuctionTitle(auctionId: number): Promise<{ title: st
   const count = json.data?.lotSearch?.pagedResults?.totalCount ?? 0;
   if (count === 0) throw new Error("No lots found for this auction ID");
 
+  const metadata = await fetchAuctionMetadata(auctionId);
+
   try {
     const pageRes = await fetch(`https://hibid.com/auction/${auctionId}/x`);
     if (pageRes.ok) {
       const html = await pageRes.text();
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
       if (titleMatch) {
-        let title = titleMatch[1]
+        const title = titleMatch[1]
           .replace(/\s*\|.*$/i, "")
           .replace(/\s*-\s*HiBid.*$/i, "")
           .replace(/&amp;/g, "&")
@@ -114,13 +179,13 @@ export async function lookupAuctionTitle(auctionId: number): Promise<{ title: st
           .replace(/&quot;/g, '"')
           .trim();
         if (title && title.length > 2 && !title.toLowerCase().includes("not found")) {
-          return { title, lotCount: count };
+          return { title, lotCount: count, metadata };
         }
       }
     }
   } catch {}
 
-  return { title: `Auction ${auctionId}`, lotCount: count };
+  return { title: `Auction ${auctionId}`, lotCount: count, metadata };
 }
 
 export function parseAuctionIdFromInput(input: string): number | null {
