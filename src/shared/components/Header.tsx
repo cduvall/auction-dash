@@ -24,7 +24,7 @@ interface HeaderProps {
 export function Header({
   auctions,
   currentAuctionId,
-  onAuctionChange,
+  onAuctionChange: _,
   currentView,
   onViewChange,
   showHidden,

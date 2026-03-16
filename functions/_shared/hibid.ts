@@ -169,7 +169,7 @@ export async function lookupAuctionTitle(auctionId: number): Promise<{ title: st
       const html = await pageRes.text();
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
       if (titleMatch) {
-        let title = titleMatch[1]
+        const title = titleMatch[1]
           .replace(/\s*\|.*$/i, "")
           .replace(/\s*-\s*HiBid.*$/i, "")
           .replace(/&amp;/g, "&")
