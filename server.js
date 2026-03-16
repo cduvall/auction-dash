@@ -28,6 +28,55 @@ function parseAuctionIdFromInput(input) {
   return null;
 }
 
+const AUCTION_METADATA_QUERY = `query AuctionMetadata($id: Int!) {
+  auction(id: $id) {
+    id eventName bidType description
+    bidOpenDateTime bidCloseDateTime
+    previewDateInfo checkoutDateInfo
+    buyerPremiumRate auctionNotice
+    auctionState { auctionStatus }
+    auctioneer { name city state address }
+    eventCity eventState eventZip
+  }
+}`;
+
+async function fetchAuctionMetadata(auctionId) {
+  try {
+    const res = await fetch(GRAPHQL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        operationName: "AuctionMetadata",
+        variables: { id: auctionId },
+        query: AUCTION_METADATA_QUERY,
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json.errors || !json.data?.auction) return null;
+    const a = json.data.auction;
+
+    const location = [a.eventCity, a.eventState, a.eventZip].filter(Boolean).length > 0
+      ? `${a.eventCity || ""}${a.eventCity && a.eventState ? ", " : ""}${a.eventState || ""} ${a.eventZip || ""}`.trim()
+      : null;
+
+    return {
+      bidOpenDateTime: a.bidOpenDateTime || null,
+      bidCloseDateTime: a.bidCloseDateTime || null,
+      previewDateInfo: a.previewDateInfo || null,
+      checkoutDateInfo: a.checkoutDateInfo || null,
+      status: a.auctionState?.auctionStatus || null,
+      bidType: a.bidType || null,
+      buyerPremiumRate: a.buyerPremiumRate ?? null,
+      description: a.description || null,
+      location,
+      auctioneerName: a.auctioneer?.name || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function lookupAuctionTitle(auctionId) {
   // Fetch a single lot page to get auction context
   const res = await fetch(GRAPHQL_URL, {
@@ -44,6 +93,9 @@ async function lookupAuctionTitle(auctionId) {
   if (json.errors) throw new Error(json.errors[0]?.message || "GraphQL error");
   const count = json.data?.lotSearch?.pagedResults?.totalCount ?? 0;
   if (count === 0) throw new Error("No lots found for this auction ID");
+
+  const metadata = await fetchAuctionMetadata(auctionId);
+
   // Try scraping auction page title
   try {
     const pageRes = await fetch(`https://hibid.com/auction/${auctionId}/x`);
@@ -61,12 +113,12 @@ async function lookupAuctionTitle(auctionId) {
           .replace(/&quot;/g, '"')
           .trim();
         if (title && title.length > 2 && !title.toLowerCase().includes("not found")) {
-          return { title, lotCount: count };
+          return { title, lotCount: count, metadata };
         }
       }
     }
   } catch {}
-  return { title: `Auction ${auctionId}`, lotCount: count };
+  return { title: `Auction ${auctionId}`, lotCount: count, metadata };
 }
 
 // Per-auction state cache: { hiddenSet, favoritesSet, cachedLots }
@@ -580,10 +632,29 @@ const server = http.createServer(async (req, res) => {
   // Add auction
   if (pathname === "/api/auctions" && req.method === "POST") {
     try {
-      const { id, title } = JSON.parse(await readBody(req));
+      const { id, title, metadata } = JSON.parse(await readBody(req));
       if (!id || !title) throw new Error("id and title required");
       if (AUCTION_MAP.has(id)) throw new Error("Auction already exists");
-      AUCTIONS.push({ id, title });
+      AUCTIONS.push({ id, title, metadata: metadata || null });
+      saveAuctions();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, auctions: AUCTIONS }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Refresh metadata for a single auction
+  if (pathname === "/api/auctions/refresh-metadata" && req.method === "POST") {
+    try {
+      const { id } = JSON.parse(await readBody(req));
+      if (!id) throw new Error("id required");
+      const auction = AUCTIONS.find(a => a.id === id);
+      if (!auction) throw new Error("Auction not found");
+      const metadata = await fetchAuctionMetadata(id);
+      auction.metadata = metadata;
       saveAuctions();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, auctions: AUCTIONS }));

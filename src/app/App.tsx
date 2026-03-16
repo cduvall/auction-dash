@@ -19,6 +19,7 @@ import { Untouched } from "@/features/lots/components/Untouched";
 import { HistoryCharts } from "@/features/dashboard/components/HistoryCharts";
 import { LoadingOverlay } from "@/shared/components/LoadingOverlay";
 import { AuctionManager } from "@/features/auctions/components/AuctionManager";
+import { AuctionInfoBar } from "@/features/dashboard/components/AuctionInfoBar";
 import { MigrationPrompt } from "@/features/auth/components/MigrationPrompt";
 
 export function App() {
@@ -210,6 +211,10 @@ export function App() {
 
         {user && view === "dashboard" && lotsData && (
           <>
+            {(() => {
+              const currentAuction = auctions.find(a => a.id === auctionId);
+              return currentAuction ? <AuctionInfoBar auction={currentAuction} onAuctionsUpdated={handleAuctionsUpdated} /> : null;
+            })()}
             <StatsGrid stats={lotsData.stats} onUntouchedClick={() => setView("untouched")} />
             <BidStatsGrid stats={lotsData.stats} lots={lotsData.lots} bidderStats={bidderStats} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">

@@ -1,4 +1,4 @@
-import type { Auction } from "@/shared/types";
+import type { Auction, AuctionMetadata } from "@/shared/types";
 
 export async function fetchAuctions(): Promise<Auction[]> {
   const res = await fetch("/api/auctions");
@@ -10,6 +10,7 @@ export interface AuctionLookup {
   id: number;
   title: string;
   lotCount: number;
+  metadata?: AuctionMetadata | null;
 }
 
 export async function lookupAuction(query: string): Promise<AuctionLookup> {
@@ -19,11 +20,11 @@ export async function lookupAuction(query: string): Promise<AuctionLookup> {
   return data;
 }
 
-export async function addAuction(id: number, title: string): Promise<Auction[]> {
+export async function addAuction(id: number, title: string, metadata?: AuctionMetadata | null): Promise<Auction[]> {
   const res = await fetch("/api/auctions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, title }),
+    body: JSON.stringify({ id, title, metadata: metadata || null }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to add auction");
@@ -38,6 +39,17 @@ export async function updateAuction(id: number, title: string): Promise<Auction[
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to update auction");
+  return data.auctions;
+}
+
+export async function refreshAuctionMetadata(id: number): Promise<Auction[]> {
+  const res = await fetch("/api/auctions/refresh-metadata", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to refresh metadata");
   return data.auctions;
 }
 
