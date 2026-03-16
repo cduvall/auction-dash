@@ -630,6 +630,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Auth endpoints for local dev — always return a fake user
+  if (pathname === "/api/auth/me") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      user: { id: 1, email: "dev@localhost", username: "dev", displayName: "Dev User", avatarUrl: null, migratedAnonymous: false },
+      hasAnonymousData: false,
+    }));
+    return;
+  }
+
+  if (pathname === "/api/auth/login") {
+    res.writeHead(302, { Location: "/" });
+    res.end();
+    return;
+  }
+
+  if (pathname === "/api/auth/logout") {
+    res.writeHead(302, { Location: "/" });
+    res.end();
+    return;
+  }
+
   // All other /api routes require ?auction=ID
   const auctionId = parseInt(parsed.searchParams.get("auction"));
   if (!auctionId || !AUCTION_MAP.has(auctionId)) {

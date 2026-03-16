@@ -4,30 +4,35 @@ import { getAccessJWTFromRequest, verifyAccessJWT } from "../_shared/cf-access";
 async function authMiddleware(context: EventContext<Env, string, Record<string, unknown>>) {
   (context.data as any).user = null;
 
-  const token = getAccessJWTFromRequest(context.request);
-  if (token) {
+  // Local dev: bypass JWT verification and use DEV_USER_EMAIL from .dev.vars
+  const devEmail = (context.env as any).DEV_USER_EMAIL;
+  const email = await (async () => {
+    if (devEmail) return devEmail as string;
+    const token = getAccessJWTFromRequest(context.request);
+    if (!token) return null;
     const payload = await verifyAccessJWT(
       token,
       context.env.CF_ACCESS_TEAM_DOMAIN,
       context.env.CF_ACCESS_AUD
     );
-    if (payload?.email) {
-      // Look up user by email
-      const user = await context.env.DB.prepare(
-        "SELECT id, email, username, display_name, avatar_url, migrated_anonymous FROM users WHERE email = ?"
-      ).bind(payload.email).first<{
-        id: number; email: string; username: string; display_name: string | null; avatar_url: string | null; migrated_anonymous: number;
-      }>();
-      if (user) {
-        (context.data as any).user = {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          displayName: user.display_name,
-          avatarUrl: user.avatar_url,
-          migratedAnonymous: user.migrated_anonymous === 1,
-        };
-      }
+    return payload?.email ?? null;
+  })();
+
+  if (email) {
+    const user = await context.env.DB.prepare(
+      "SELECT id, email, username, display_name, avatar_url, migrated_anonymous FROM users WHERE email = ?"
+    ).bind(email).first<{
+      id: number; email: string; username: string; display_name: string | null; avatar_url: string | null; migrated_anonymous: number;
+    }>();
+    if (user) {
+      (context.data as any).user = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: user.display_name,
+        avatarUrl: user.avatar_url,
+        migratedAnonymous: user.migrated_anonymous === 1,
+      };
     }
   }
   return context.next();
@@ -36,7 +41,6 @@ async function authMiddleware(context: EventContext<Env, string, Record<string, 
 // Middleware 2: Validate ?auction= param for scoped routes
 async function auctionMiddleware(context: EventContext<Env, string, Record<string, unknown>>) {
   const url = new URL(context.request.url);
-
   if (url.pathname.startsWith("/api/auctions") || url.pathname.startsWith("/api/auth")) {
     return context.next();
   }

@@ -139,7 +139,7 @@ export function Header({
           {user && <div className="w-[34px] sm:hidden shrink-0" />}
 
           {/* Logo - centered on mobile, left on desktop */}
-          <img src="/logo.png" alt="AuctionDash" className="h-7 sm:h-8 shrink-0 mx-auto sm:mx-0" />
+          <img src="/logo.png" alt="AuctionDash" className="h-7 sm:h-8 shrink-0 mx-auto sm:mx-0 cursor-pointer" onClick={() => onViewChange("dashboard")} />
 
           {/* Desktop: auction name */}
           {user && currentAuction && (

@@ -3,36 +3,46 @@ import { getAccessJWTFromRequest, verifyAccessJWT } from "../../_shared/cf-acces
 // This path is protected by Cloudflare Access, so the JWT is guaranteed present.
 // Read it, upsert the user, seed auctions if needed, then redirect home.
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const token = getAccessJWTFromRequest(context.request);
-  if (!token) {
-    return new Response("No Access token", { status: 401 });
-  }
+  // Local dev: bypass JWT verification
+  const devEmail = (context.env as any).DEV_USER_EMAIL as string | undefined;
 
-  const payload = await verifyAccessJWT(
-    token,
-    context.env.CF_ACCESS_TEAM_DOMAIN,
-    context.env.CF_ACCESS_AUD
-  );
-  if (!payload?.email) {
-    return new Response("Invalid Access token", { status: 401 });
+  let email: string;
+  if (devEmail) {
+    email = devEmail;
+  } else {
+    const token = getAccessJWTFromRequest(context.request);
+    if (!token) {
+      return new Response("No Access token", { status: 401 });
+    }
+
+    const payload = await verifyAccessJWT(
+      token,
+      context.env.CF_ACCESS_TEAM_DOMAIN,
+      context.env.CF_ACCESS_AUD
+    );
+    if (!payload?.email) {
+      return new Response("Invalid Access token", { status: 401 });
+    }
+    email = payload.email;
   }
 
   const db = context.env.DB;
-  const email = payload.email;
   const username = email.split("@")[0];
 
-  // Fetch identity from CF Access to get display name
+  // Fetch identity from CF Access to get display name (skip in local dev)
   let displayName: string | null = null;
-  try {
-    const identityRes = await fetch(
-      `${context.env.CF_ACCESS_TEAM_DOMAIN}/cdn-cgi/access/get-identity`,
-      { headers: { Cookie: context.request.headers.get("Cookie") || "" } }
-    );
-    if (identityRes.ok) {
-      const identity = await identityRes.json<{ name?: string }>();
-      if (identity.name) displayName = identity.name;
-    }
-  } catch {}
+  if (!devEmail) {
+    try {
+      const identityRes = await fetch(
+        `${context.env.CF_ACCESS_TEAM_DOMAIN}/cdn-cgi/access/get-identity`,
+        { headers: { Cookie: context.request.headers.get("Cookie") || "" } }
+      );
+      if (identityRes.ok) {
+        const identity = await identityRes.json<{ name?: string }>();
+        if (identity.name) displayName = identity.name;
+      }
+    } catch {}
+  }
 
   // Upsert user
   await db
